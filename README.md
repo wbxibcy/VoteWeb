@@ -1,5 +1,7 @@
 # VoteWeb
 
+## 项目介绍
+
 ## api设计
 
 ### 用户 (Users)
@@ -15,7 +17,7 @@
   ```json
   {
     "username": "xx",
-    "password": "1234"
+    "password": "123456"
   }
   ```
 

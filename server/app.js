@@ -4,6 +4,15 @@ const WebSocket = require('ws');
 const http = require('http');
 
 const app = express();
+// 允许所有来源访问
+app.use(cors());
+app.all('*', function (req, res, next) {
+	res.header("Access-Control-Allow-Origin", "*");
+	res.header('Access-Control-Allow-Methods', 'PUT, GET, POST, DELETE, OPTIONS');
+	res.header("Access-Control-Allow-Headers", "X-Requested-With");
+	res.header('Access-Control-Allow-Headers', ['mytoken','Content-Type']);
+	next();
+});
 app.use(bodyParser.json());
 
 const server = http.createServer(app);

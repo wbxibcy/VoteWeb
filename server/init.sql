@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS votes (
     status VARCHAR(50),
     min_votes INT,
     max_votes INT,
+    vote_code VARCHAR(255),
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 

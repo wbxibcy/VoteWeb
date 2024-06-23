@@ -75,17 +75,18 @@
   - `201 Created`：投票创建成功，返回投票 ID。
   - `500 Internal Server Error`：服务器错误。
 
-#### 获取所有投票 (Get All Votes)
+#### 根据投票码获取投票信息 (Get Vote by vote_code) 
 
-- **URL:** `/votes`
-- **Method:** `GET`
-- Response:
-  - `200 OK`：返回所有投票的列表。
-  - `500 Internal Server Error`：服务器错误。
+- **URL:** `/votes/code/:vote_code` 
+- **Method:** `GET` 
+- Response: 
+- - `200 OK`: 返回对应投票码的投票信息。   
+  - `404 Not Found`: 没有找到对应投票码的投票信息。  
+  - `500 Internal Server Error`: 服务器错误。
 
 #### 获取特定投票 (Get Vote by ID)
 
-- **URL:** `/votes/:vote_id`
+- **URL:** `/votes/id/:vote_id`
 - **Method:** `GET`
 - Response:
   - `200 OK`：返回特定投票的详细信息。
@@ -137,6 +138,7 @@
 
   ```json
   {
+    "user_id": 1,
     "vote_id": 1,
     "options": [
       { "option_title": "JavaScript" },
@@ -153,7 +155,7 @@
 
 #### 获取特定投票的选项 (Get Options by Vote ID)
 
-- **URL:** `/vote_options/:vote_id`
+- **URL:** `/vote_options/:user_id/:vote_id/options`
 - **Method:** `GET`
 - Response:
   - `200 OK`：返回特定投票的所有选项。
@@ -161,7 +163,7 @@
 
 #### 删除投票选项 (Delete Option)
 
-- **URL:** `/vote_options/:option_id`
+- **URL:** `/vote_options/:user_id/:vote_id/options/:option_id`
 - **Method:** `DELETE`
 - Response:
   - `200 OK`：选项删除成功。

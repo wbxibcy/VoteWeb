@@ -6,5 +6,3 @@ router.post('/register', userController.register);
 router.post('/login', userController.login);
 
 module.exports = router;
-
-console.log('I am here.')

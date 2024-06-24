@@ -1,4 +1,4 @@
-const { executeSql } = require('../mysql');
+const { executeSql } = require('../utils/mysql');
 const bcrypt = require('bcryptjs');
 
 exports.register = async (req, res) => {

@@ -75,6 +75,15 @@
   - `201 Created`：投票创建成功，返回投票 ID。
   - `500 Internal Server Error`：服务器错误。
 
+#### 根据用户ID获取投票信息 (Get Vote by user_ID) 
+
+- **URL:** `/votes/user/:user_id` 
+- **Method:** `GET` 
+- Response: 
+- - `200 OK`: 返回用户id的投票信息。   
+  - `404 Not Found`: 没有找到对应投票码的投票信息。  
+  - `500 Internal Server Error`: 服务器错误。
+
 #### 根据投票码获取投票信息 (Get Vote by vote_code) 
 
 - **URL:** `/votes/code/:vote_code` 
@@ -181,15 +190,18 @@
 
   ```json
   {
-    "vote_id": 1,
-    "user_id": 1,
-    "option_id": 1
+    "vote_id": 2,
+    "user_id": 19,
+    "options": [
+      {"option_id": "1"},
+      {"option_id": "2"}
+    ]
   }
   ```
 
 - Response:
 
-  - `200 OK`：投票结果提交成功。
+  - `201 Created`：投票结果提交成功。
   - `500 Internal Server Error`：服务器错误。
 
 #### 获取特定投票的结果 (Get Results by Vote ID)

@@ -1,9 +1,9 @@
 const express = require('express');
 const app = express();
 
-const votingSystemDB = require('./mysql');
+const votingSystemDB = require('../utils/mysql');
 votingSystemDB.getConnection()
-const redisClient = require('./redis');
+const redisClient = require('../utils/redis');
 redisClient.connect();
 
 app.get('/', async(req, res) => {

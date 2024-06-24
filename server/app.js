@@ -1,10 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const WebSocket = require('ws');
-const http = require('http');
+// require('./controllers/persistController');
 
 const app = express();
+const http = require('http');
+const server = http.createServer(app);
 // 允许所有来源访问
 app.use(cors());
 app.all('*', function (req, res, next) {
@@ -15,12 +16,6 @@ app.all('*', function (req, res, next) {
 	next();
 });
 app.use(bodyParser.json());
-
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
-
-// const votingSystemDB = require('./mysql');
-// const redisClient = require('./redis');
 
 const userRoutes = require('./routes/users');
 const voteRoutes = require('./routes/votes');
@@ -50,36 +45,3 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).send('Something broke!');
   });  
-
-
-// wss.on('connection', (ws, req) => {
-//     console.log('WebSocket client connected');
-
-//     const voteId = req.url.split('=')[1];
-//     // todo
-//     // 使用 voteId 进行后续操作
-    
-
-//     ws.on('message', (message) => {
-//         console.log('Received message from client:', message);
-//     });
-
-//     ws.on('close', () => {
-//         console.log('WebSocket client disconnected');
-//     });
-// });
-
-
-
-// // Function to broadcast vote results to WebSocket clients
-// const broadcastResults = async (results) => {
-//     wss.clients.forEach((client) => {
-//         if (client.readyState === WebSocket.OPEN) {
-//             client.send(JSON.stringify(results));
-//         }
-//     });
-// };
-
-
-// // Example: Call broadcastResults every 5 seconds
-// setInterval(broadcastResults, 5000);

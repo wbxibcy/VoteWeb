@@ -1,4 +1,4 @@
-const { executeSql } = require('../mysql');
+const { executeSql } = require('../utils/mysql');
 
 exports.addOption = async (req, res) => {
   const { user_id, vote_id, options } = req.body;

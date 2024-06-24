@@ -1,28 +1,23 @@
-const { executeSql } = require('../mysql');
-const redisClient = require('../redis');
+const { v4: uuidv4 } = require('uuid');
+const redisClient = require('../utils/redis');
+redisClient.connect();
 
 exports.submitVote = async (req, res) => {
-  const { user_id, vote_id, vote_time, options } = req.body;
+  const { user_id, vote_id, options } = req.body;
 
   try {
-    const results = await executeSql(
-      'INSERT INTO results (user_id, vote_id, vote_time) VALUES (?, ?, ?)',
-      [user_id, vote_id, vote_time]
-    );
-    const result_id = results.insertId;
+    const vote_time = new Date().toISOString();
+    const result_id = uuidv4();
+    redisClient.hSet(`vote:${vote_id}:results`, result_id, JSON.stringify({ user_id, vote_time, options }));
 
     for (const option of options) {
-      await executeSql(
-        'INSERT INTO result_details (result_id, option_id) VALUES (?, ?)',
-        [result_id, option.option_id]
-      );
-
-      // Increment the vote count in Redis
-      redisClient.hincrby(`vote:${vote_id}`, `option:${option.option_id}`, 1);
+      console.log(option);
+      redisClient.hIncrBy(`vote:${vote_id}`, `option:${option.option_id}`, 1);
     }
 
     res.status(201).send({ result_id });
   } catch (err) {
+    console.log(err);
     res.status(500).send(err);
   }
 };
@@ -31,11 +26,18 @@ exports.getResultsByVoteId = async (req, res) => {
   const { vote_id } = req.params;
 
   try {
-    redisClient.hgetall(`vote:${vote_id}`, (err, results) => {
-      if (err) return res.status(500).send(err);
-      res.status(200).send(results);
-    });
+    const voteResults = await redisClient.hGetAll(`vote:${vote_id}`);
+
+    const formattedResults = Object.entries(voteResults).map(([option, count]) => ({
+      option_id: option.replace('option:', ''),
+      count: parseInt(count)
+    }));
+
+    // 输出格式化后的结果
+    console.log(formattedResults);
+    res.status(200).send(formattedResults);
   } catch (err) {
+    console.log(err);
     res.status(500).send(err);
   }
 };

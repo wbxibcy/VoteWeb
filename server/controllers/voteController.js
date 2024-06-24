@@ -1,4 +1,4 @@
-const { executeSql } = require('../mysql');
+const { executeSql } = require('../utils/mysql');
 
 exports.createVote = async (req, res) => {
     const { user_id, vote_title, vote_description, start_time, end_time, status, min_votes, max_votes } = req.body;
@@ -34,6 +34,25 @@ function generateRandomCode() {
 
     return code;
 }
+
+exports.getVotesByUserId = async (req, res) => {
+    const { user_id } = req.params;
+
+    try {
+        // 查询用户参与的投票
+        const votes = await executeSql('SELECT * FROM votes WHERE user_id = ?', [user_id]);
+        
+        // 查询每个投票的选项信息
+        const votesWithOptions = await Promise.all(votes.map(async (vote) => {
+            const options = await executeSql('SELECT * FROM vote_options WHERE vote_id = ?', [vote.vote_id]);
+            return { ...vote, options };
+        }));
+        
+        res.status(200).send(votesWithOptions);
+    } catch (err) {
+        res.status(500).send(err);
+    }
+};
 
 
 exports.getVoteByCode = async (req, res) => {

@@ -12,7 +12,7 @@ const pool = mysql.createPool({
 const initDb = async () => {
   try {
     // 读取SQL文件
-    const sql = fs.readFileSync('init.sql', 'utf8');
+    const sql = fs.readFileSync('./utils/init.sql', 'utf8');
     
     // 从连接池获取连接
     const connection = await pool.getConnection();

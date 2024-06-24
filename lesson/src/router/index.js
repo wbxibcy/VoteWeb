@@ -39,10 +39,10 @@ const routes = [
     component: FinishedVote
   },
   {
-    path: '/govote',
+    path: '/govote/:voteCode',
     name: 'govote',
     component: GoVote
-  },
+  },  
   {
     path: '/myvote',
     name: 'myvote',

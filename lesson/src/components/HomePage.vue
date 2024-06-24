@@ -14,48 +14,69 @@
   align-items: center;
 }
 
-.login-container {
+.left-container,
+.right-container {
+  width: 50%;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
 }
 
-.login-form {
-  width: 400px;
-  background-color: white;
-  padding: 32px;
-  border-radius: 10px;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+.el-input {
+  width: 200px;
 }
 </style>
 
 <template>
   <div class="wrapper">
-    
-  
+    <div class="left-container">
+      <div style="text-align: center; color: white; font-size: 56px; font-weight: bold;">
+        <p>请输入投票码</p>
+        <el-input v-model="voteCode" style="width: 400px;"></el-input>
+        <el-button type="primary" @click="submitVoteCode" style="width: 400px;">确定</el-button>
+      </div>
+    </div>
+    <div class="right-container">
+      <div style="text-align: center; color: #409EFF; font-size: 56px; font-weight: bold;">
+        <p>我的投票</p>
+        <el-button type="primary" @click="goToMyVotes" style="width: 400px;">前往</el-button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router'
+import { useRouter } from 'vue-router';
+import axios from 'axios';
 
-const router = useRouter()
-const activeIndex = ref('home')
+const router = useRouter();
+const voteCode = ref('');
 
-const handleSelect = (index) => {
-  activeIndex.value = index
-  router.push({ name: index })
+const submitVoteCode = async () => {
+  try {
+    const response = await axios.get(`http://localhost:3000/votes/code/${voteCode.value}`);
+    if (response.status === 200) {
+      console.log('提交投票码成功:', response.data);
+      // 传递正确的参数给 govote 页面
+      router.push({ name: 'govote', params: { voteCode: voteCode.value } });
+    }
+  } catch (error) {
+    if (error.response) {
+      if (error.response.status === 404) {
+        console.error('没有找到对应投票码的投票信息');
+      } else if (error.response.status === 500) {
+        console.error('服务器错误');
+      }
+    } else {
+      console.error('请求错误:', error.message);
+    }
+  }
 };
 
-const goToCreate = () => {
-  router.push({ name: 'login' });
+const goToMyVotes = () => {
+  // 跳转至我的投票页面
+  router.push({ name: 'myvote' });
 };
-
-const loginForm = ref({
-  username: '',
-  password: '',
-  confirmPassword: ''
-});
 </script>

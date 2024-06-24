@@ -10,30 +10,31 @@
   background-position: center;
   background-repeat: no-repeat;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end; 
   align-items: center;
+  padding-right: 20px; 
 }
 
 .login-container {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+  flex-direction: column;
+  align-items: flex-end; 
+  padding-right: 150px; 
 }
+
 
 .login-form {
   width: 400px;
   background-color: white;
   padding: 32px;
   border-radius: 10px;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
 }
 </style>
 
 <template>
   <div class="wrapper">
     <div class="login-container">
-      <el-form class="login-form" ref="loginFormRef" :model="loginForm" :rules="rules" label-width="80px">
+      <el-form class="login-form" :model="loginForm" :rules="rules" label-width="80px" ref="loginFormRef">
         <el-form-item label="账号" prop="username">
           <el-input v-model="loginForm.username"></el-input>
         </el-form-item>
@@ -44,7 +45,7 @@
           <el-input v-model="loginForm.confirmPassword" type="password"></el-input>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="goToCreate">创建</el-button>
+          <el-button type="primary" @click="submitForm(loginFormRef)" style="width: 400px;">创建</el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -53,26 +54,17 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router'
+import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 
-const router = useRouter()
-const activeIndex = ref('create')
-
-const handleSelect = (index) => {
-  activeIndex.value = index
-  router.push({ name: index })
-};
-
-const goToCreate = () => {
-  router.push({ name: 'login' });
-};
+const router = useRouter();
+const loginFormRef = ref(null);
 
 const loginForm = ref({
   username: '',
   password: '',
   confirmPassword: ''
 });
-
 
 const validateConfirmPassword = (rule, value, callback) => {
   if (value !== loginForm.value.password) {
@@ -92,12 +84,26 @@ const rules = {
 };
 
 const submitForm = async (formRef) => {
-  await formRef.value.validate((valid, fields) => {
+  await formRef.validate(async (valid, fields) => {
     if (valid) {
-      console.log('submit!', loginForm.value);
-      router.push({ name: 'login' });
+      const response = await fetch('http://localhost:3000/users/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(loginForm.value),
+      });
+
+      if (response.ok) {
+        console.log('注册成功!', loginForm.value);
+        router.push({ name: 'login' });
+      } else {
+        const errorData = await response.json();
+        console.log('注册失败:', errorData.message);
+        ElMessage.error(errorData.message);
+      }
     } else {
-      console.log('error submit!', fields);
+      console.log('表单验证失败:', fields);
     }
   });
 };

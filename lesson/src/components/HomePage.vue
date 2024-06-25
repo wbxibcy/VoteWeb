@@ -48,11 +48,13 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
 
 const router = useRouter();
 const voteCode = ref('');
+const route = useRoute();
+const userId = route.query.user_id;
 
 const submitVoteCode = async () => {
   try {
@@ -76,7 +78,6 @@ const submitVoteCode = async () => {
 };
 
 const goToMyVotes = () => {
-  // 跳转至我的投票页面
-  router.push({ name: 'myvote' });
+  router.push({ name: 'myvote', query: { user_id: userId } });
 };
 </script>

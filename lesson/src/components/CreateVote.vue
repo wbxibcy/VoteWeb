@@ -65,19 +65,27 @@
       <el-menu-item index="home" style="color: #409EFF;font-weight: bold;">返回首页</el-menu-item>
     </el-menu>
 
-  <div class="vote-input">
+    <div class="vote-input">
       <el-form :model="formData" label-width="120px">
-        <el-form-item >
-          <h2 style="color: #409EFF;font-weight: bold;">创建投票</h2>
+        <el-form-item>
+          <h2 style="color: #409EFF; font-weight: bold;">创建投票</h2>
         </el-form-item>
         <el-form-item label="投票名称" prop="vote_title">
           <el-input v-model="formData.vote_title"></el-input>
         </el-form-item>
+        <el-form-item label="投票状态" prop="status">
+          <el-select v-model="formData.vote_status" placeholder="请选择投票状态">
+            <el-option label="Open" value="open"></el-option>
+            <el-option label="Closed" value="closed"></el-option>
+          </el-select>
+        </el-form-item>
         <el-form-item label="开始时间" prop="start_time">
-          <el-date-picker v-model="formData.start_time" type="datetime"></el-date-picker>
+          <el-date-picker v-model="formData.start_time" type="datetime"
+            :value-format="'YYYY-MM-DDTHH:mm:ss'"></el-date-picker>
         </el-form-item>
         <el-form-item label="结束时间" prop="end_time">
-          <el-date-picker v-model="formData.end_time" type="datetime"></el-date-picker>
+          <el-date-picker v-model="formData.end_time" type="datetime"
+            :value-format="'YYYY-MM-DDTHH:mm:ss'"></el-date-picker>
         </el-form-item>
         <el-form-item label="最少投票次数" prop="min_votes">
           <el-input v-model.number="formData.min_votes" type="number"></el-input>
@@ -88,59 +96,100 @@
         <el-form-item label="投票描述" prop="vote_description">
           <el-input v-model="formData.vote_description"></el-input>
         </el-form-item>
-      <el-form-item label="投票选项" prop="options" v-for="(option, index) in formData.options" :key="index">
-        <el-input v-model="formData.options[index]"></el-input>
-      </el-form-item>
-    <el-form-item>
-      <el-button type="text" @click="addOption">增加选项</el-button>
-      <el-button type="primary" @click="confirmVote">确定创建</el-button>
-    </el-form-item>
-    </el-form>
+        <el-form-item label="投票选项" prop="options" v-for="(option, index) in formData.options" :key="index">
+          <el-input v-model="formData.options[index]"></el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="text" @click="addOption">增加选项</el-button>
+          <el-button type="primary" @click="confirmVote">确定创建</el-button>
+        </el-form-item>
+      </el-form>
     </div>
   </div>
+
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
-import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { ref, onMounted } from 'vue'
 import axios from 'axios';
 
 const router = useRouter()
 const activeIndex = ref('createvote')
+const route = useRoute();
 
 const handleSelect = (index) => {
   activeIndex.value = index
   router.push({ name: index })
 }
 
+onMounted(() => {
+  // 从路由参数中获取用户ID
+  // formData.value.user_id = route.query.user_id;
+  formData.value.user_id = parseInt(route.query.user_id);
+});
+
 const formData = ref({
   vote_title: '',
+  status: '', // 添加 vote_status 属性
   vote_description: '',
   start_time: '',
   end_time: '',
   min_votes: null,
   max_votes: null,
-  options: [''] 
+  options: [''],
+  user_id: null
 });
 
 const addOption = () => {
-  formData.value.options.push(''); 
+  formData.value.options.push('');
 }
 
 const confirmVote = async () => {
   try {
-    const response = await axios.post('http://localhost:3000/votes', formData.value);
-    if (response.status === 201) {
-      console.log('投票创建成功，投票ID:', response.data.vote_id);
-      Object.keys(formData.value).forEach(key => {
-        if (key !== 'options') { 
-          formData.value[key] = '';
-        }
-      });
-      formData.value.options = ['']; 
+    // 创建投票数据
+    const voteDataToInsert = {
+      user_id: formData.value.user_id,
+      vote_title: formData.value.vote_title,
+      vote_description: formData.value.vote_description,
+      start_time: formData.value.start_time,
+      end_time: formData.value.end_time,
+      status: formData.value.status,
+      min_votes: formData.value.min_votes,
+      max_votes: formData.value.max_votes,
+    };
+
+    // 发送投票数据的请求
+    const voteResponse = await axios.post('http://localhost:3000/votes', voteDataToInsert);
+    if (voteResponse.status === 201) {
+      console.log('投票创建成功，投票ID:', voteResponse.data.vote_id);
+      console.log('投票码:', voteResponse.data.vote_code);
+
+      // 创建选项数据
+      const optionsDataToInsert = {
+        user_id: formData.value.user_id,
+        vote_id: voteResponse.data.vote_id, // 使用获取到的 vote_id
+        options: formData.value.options.map(option => ({ option_title: option }))
+      };
+
+      // 发送选项数据的请求
+      const optionsResponse = await axios.post('http://localhost:3000/vote_options', optionsDataToInsert);
+      if (optionsResponse.status === 201) {
+        console.log('选项创建成功');
+        // 清空表单数据
+        formData.value.vote_title = '';
+        formData.value.vote_description = '';
+        formData.value.start_time = '';
+        formData.value.end_time = '';
+        formData.value.status = '';
+        formData.value.min_votes = null;
+        formData.value.max_votes = null;
+        formData.value.options = [''];
+      }
     }
   } catch (error) {
-    console.error('投票创建失败:', error.message);
+    console.error('投票或选项创建失败:', error.message);
   }
 };
+
 </script>

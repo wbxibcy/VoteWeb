@@ -44,16 +44,19 @@
   flex-grow: 1;
 }
 
-.shape-container {
-  display: flex;
+.rounded-rectangle {
+  width: 200px;
+  height: 100px;
+  background-color: #409EFF;
+  border-radius: 15px;
+  margin-top: 20px;
 }
 
-.shape {
-  width: 100px;
-  height: 50px;
-  background-color: #409EFF; /* 默认颜色 */
-  border-radius: 10px;
-  margin-right: 10px;
+.container {
+  display: flex;
+  justify-content: space-between;
+  /* Adjust this property as needed */
+  margin-top: 20px;
 }
 </style>
 
@@ -67,50 +70,64 @@
       <el-menu-item index="home" style="color: #409EFF;font-weight: bold;">返回首页</el-menu-item>
     </el-menu>
     <div class="menu-extras">
-      <p  class="menu-text" style="color: #409EFF;font-weight: bold;">未完成投票</p>
-      <div class="shape-container">
-    <div class="shape" v-for="(color, index) in colors" :key="index" :style="{ backgroundColor: color }"></div>
-  </div>
-      <p  class="menu-text" style="color: #409EFF;font-weight: bold;">已完成投票</p>
+      <p class="menu-text" style="color: #409EFF;font-weight: bold;">未完成投票</p>
+      <div class="container">
+        <div class="rounded-rectangle">
+
+        </div>
+        <div class="rounded-rectangle">
+
+        </div>
+        <div class="rounded-rectangle">
+
+        </div>
+       
+        <el-button class="rounded-rectangle" type="primary" @click="goToCreateVotes">创建投票</el-button>
+      </div>
+      <p class="menu-text" style="color: #409EFF;font-weight: bold;">已完成投票</p>
       <div ref="chartRef" style="width: 400px; height: 400px; margin-top: 10px;"></div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router';
 import { ref } from 'vue'
 import * as echarts from 'echarts'
 import { onMounted } from "vue";
 
 const router = useRouter()
 const activeIndex = ref('myvote')
+const route = useRoute();
+const userId = route.query.user_id;
 
 const handleSelect = (index) => {
   activeIndex.value = index
   router.push({ name: index })
 }
 
-const colors = ['#409EFF', '#67C23A', '#E6A23C', '#F56C6C']; 
 
 const chartRef = ref(null)
 
 onMounted(() => {
-    echarts.init(chartRef.value).setOption({
-        xAxis: {
-            type: 'category',
-            data: ['A', 'B', 'C']
-        },
-        yAxis: {
-            type: 'value'
-        },
-        series: [
-            {
-                type: 'line',
-                data: [120, 200, 150],
-            }
-        ]
-    });
+  echarts.init(chartRef.value).setOption({
+    xAxis: {
+      type: 'category',
+      data: ['A', 'B', 'C']
+    },
+    yAxis: {
+      type: 'value'
+    },
+    series: [
+      {
+        type: 'line',
+        data: [120, 200, 150],
+      }
+    ]
+  });
 });
 
+const goToCreateVotes = () => {
+  router.push({ name: 'createvote', query: { user_id: userId } });
+};
 </script>

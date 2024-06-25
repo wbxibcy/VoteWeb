@@ -94,7 +94,8 @@ const submitForm = async (formRef) => {
               if (response.data.user_id) {
                   console.log('登录成功，用户信息：', response.data.user);
                   // 登录成功后可以进行页面跳转或其他操作
-                  router.push({ name: 'home' });
+                  // router.push({ name: 'home' });
+                  router.push({ name: 'home', query: { user_id: response.data.user_id } });
               } else {
                   console.log(response.data)
                   console.error('登录失败，账号或密码错误');

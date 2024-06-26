@@ -55,10 +55,25 @@
 .container {
   display: flex;
   justify-content: space-between;
-  /* Adjust this property as needed */
   margin-top: 20px;
 }
+
+.chart-container-wrapper {
+  display: flex;
+  flex-direction: row; /* 横向排列 */
+  flex-wrap: wrap; /* 换行 */
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.chart-container {
+  width: 400px;
+  height: 400px;
+  margin: 10px;
+}
 </style>
+
 
 <template>
   <div class="wrapper">
@@ -87,7 +102,9 @@
         <el-button class="rounded-rectangle" type="primary" @click="goToCreateVotes">创建投票</el-button>
       </div>
       <p class="menu-text" style="color: #409EFF;font-weight: bold;">已完成投票</p>
-      <div ref="chartRef" style="width: 400px; height: 400px; margin-top: 10px;"></div>
+      <div class="chart-container-wrapper">
+        <div v-for="(vote, index) in closedvotes" :key="index" :ref="el => chartRefs[index] = el" class="chart-container"></div>
+      </div>
     </div>
   </div>
 </template>
@@ -101,27 +118,12 @@ import * as echarts from 'echarts';
 const route = useRoute();
 const router = useRouter();
 const activeIndex = ref('myvote');
-const chartRef = ref(null);
 const userId = route.query.user_id;
-const votes = ref([]); // Array to store vote objects
+const votes = ref([]); // Array to store ongoing vote objects
+const closedvotes = ref([]); // Array to store closed vote objects
+const chartRefs = ref([]); // Array to store chart refs
 
 onMounted(() => {
-  echarts.init(chartRef.value).setOption({
-    xAxis: {
-      type: 'category',
-      data: ['A', 'B', 'C']
-    },
-    yAxis: {
-      type: 'value'
-    },
-    series: [
-      {
-        type: 'line',
-        data: [120, 200, 150],
-      }
-    ]
-  });
-
   fetchTitlesAndVoteId();
 });
 
@@ -145,14 +147,97 @@ const fetchTitlesAndVoteId = () => {
     }
   })
   .then(response => {
-    // Filter out titles where status is not 'closed' and map to titles
+    // Separate ongoing and closed votes
     votes.value = response.data.filter(vote => vote.status !== 'closed').slice(0, 4);
+    closedvotes.value = response.data.filter(vote => vote.status === 'closed').slice(0, 3);
+
+    // Initialize chart refs array
+    chartRefs.value = new Array(closedvotes.value.length);
+    
+    // Fetch results and draw charts for closed votes
+    closedvotes.value.forEach((vote, index) => {
+      fetchResultsAndDrawChart(vote.vote_id, vote.vote_title, index);
+    });
   })
   .catch(error => {
     console.error('Error fetching vote titles and vote id:', error);
   });
 };
 
-// Computed property to limit votes to show
+const fetchResultsAndDrawChart = (voteId, voteTitle, index) => {
+  axios.get(`http://localhost:3000/results/export/${voteId}`)
+    .then(response => {
+      const results = response.data.results;
+      drawChart(index, results, voteTitle);
+    })
+    .catch(error => {
+      console.error('Error fetching vote results:', error);
+    });
+};
+
+const drawChart = (index, data, voteTitle) => {
+  if (chartRefs.value[index]) {
+    const chartInstance = echarts.init(chartRefs.value[index]);
+    chartInstance.setOption({
+      title: {
+        text: voteTitle, // 使用 voteTitle 作为图表的标题
+        left: 'center',
+        textStyle: {
+          color: '#409EFF'
+        }
+      },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'shadow'
+        }
+      },
+      legend: {
+        bottom: 0,
+        data: ['投票数']
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: data.map(item => item.option_title),
+        axisLabel: {
+          rotate: 45,
+          interval: 0
+        },
+        axisLine: {
+          lineStyle: {
+            color: '#409EFF'
+          }
+        }
+      },
+      yAxis: {
+        type: 'value',
+        axisLine: {
+          lineStyle: {
+            color: '#409EFF'
+          }
+        }
+      },
+      series: [{
+        name: '投票数',
+        type: 'bar',
+        data: data.map(item => item.count),
+        itemStyle: {
+          color: '#409EFF'
+        },
+        label: {
+          show: true,
+          position: 'top'
+        }
+      }]
+    });
+  }
+};
+
 const votesToShow = computed(() => votes.value.slice(0, 4));
 </script>

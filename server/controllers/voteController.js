@@ -39,8 +39,8 @@ exports.getVotesByUserId = async (req, res) => {
     const { user_id } = req.params;
 
     try {
-        // 查询用户参与的投票
-        const votes = await executeSql('SELECT * FROM votes WHERE user_id = ?', [user_id]);
+        // 查询用户参与的投票，限制个数为10
+        const votes = await executeSql('SELECT * FROM votes WHERE user_id = ? LIMIT 10', [user_id]);
         
         // 查询每个投票的选项信息
         const votesWithOptions = await Promise.all(votes.map(async (vote) => {
@@ -53,6 +53,7 @@ exports.getVotesByUserId = async (req, res) => {
         res.status(500).send(err);
     }
 };
+
 
 
 exports.getVoteByCode = async (req, res) => {

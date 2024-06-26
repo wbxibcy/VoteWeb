@@ -1,9 +1,9 @@
 const { executeSql } = require('../utils/mysql');
 const redisClient = require('../utils/redis');
-const cron = require('node-cron');
 
 const persistDataToMySQL = async () => {
   try {
+    // 获取 Redis 中的数据
     redisClient.keys('vote:*:results', async (err, keys) => {
       if (err) {
         console.error('Error fetching keys from Redis:', err);
@@ -44,8 +44,5 @@ const persistDataToMySQL = async () => {
     console.error('Error persisting data to MySQL:', err);
   }
 };
-
-// Schedule the cron job to run every hour
-cron.schedule('* * * * *', persistDataToMySQL);
 
 module.exports = { persistDataToMySQL };

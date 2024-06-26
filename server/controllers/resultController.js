@@ -8,12 +8,23 @@ exports.submitVote = async (req, res) => {
   try {
     const vote_time = new Date().toISOString();
     const result_id = uuidv4();
-    redisClient.hSet(`vote:${vote_id}:results`, result_id, JSON.stringify({ user_id, vote_time, options }));
+    await redisClient.hSet(`vote:${vote_id}:results`, result_id, JSON.stringify({ user_id, vote_time, options }));
 
     for (const option of options) {
       console.log(option);
-      redisClient.hIncrBy(`vote:${vote_id}`, `option:${option.option_id}`, 1);
+      await redisClient.hIncrBy(`vote:${vote_id}`, `option:${option.option_id}`, 1);
     }
+
+    // 获取最新的投票结果
+    const voteResults = await redisClient.hGetAll(`vote:${vote_id}`);
+    const formattedResults = Object.entries(voteResults).map(([option, count]) => ({
+      option_id: option.replace('option:', ''),
+      count: parseInt(count)
+    }));
+
+    // 通过WebSocket广播最新结果
+    req.wss.broadcast(JSON.stringify({ vote_id, results: formattedResults }));
+    console.log(formattedResults);
 
     res.status(201).send({ result_id });
   } catch (err) {

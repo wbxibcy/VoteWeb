@@ -72,7 +72,7 @@
 
 - Response:
 
-  - `201 Created`：投票创建成功，返回投票 ID。
+  - `201 Created`：投票创建成功，返回投票 ID和投票码。
   - `500 Internal Server Error`：服务器错误。
 
 #### 根据用户ID获取投票信息 (Get Vote by user_ID) 

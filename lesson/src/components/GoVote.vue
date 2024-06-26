@@ -64,21 +64,6 @@
   margin: 10px 0;
 }
 
-.govote-wrapper {
-  display: flex;
-  justify-content: space-between;
-}
-
-.left-column {
-  width: 48%;
-  /* 调整左侧栏宽度 */
-}
-
-.right-column {
-  width: 48%;
-  /* 调整右侧栏宽度 */
-}
-
 .vote-details {
   padding: 20px;
   border-radius: 5px;
@@ -97,8 +82,7 @@
       <el-menu-item index="home" style="color: #409EFF;font-weight: bold;">返回首页</el-menu-item>
     </el-menu>
 
-    <div class="govote-wrapper">
-      <div class="left-column">
+    
         <div class="vote-details" v-if="voteData">
           <h1>{{ voteData.vote.vote_title }}</h1>
           <p>{{ voteData.vote.vote_description }}</p>
@@ -111,11 +95,8 @@
         </div>
         <div v-else>
           <p>正在加载投票内容...</p>
-        </div>
-      </div>
-      <div class="right-column">
-        <div ref="chartRef" style="width: 700px; height: 400px;"></div>
-      </div>
+       
+      
     </div>
   </div>
 
@@ -126,7 +107,6 @@ import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
-import * as echarts from 'echarts';
 
 const router = useRouter();
 const route = useRoute();
@@ -172,9 +152,13 @@ const fetchResultsData = async (voteId) => {
 
 const submitVotes = async () => {
   try {
+    if (selectedOptions.value.length === 0) {
+      console.error('请至少选择一个选项进行投票');
+      return;
+    }
+
     const postData = {
       vote_id: voteData.value.vote.vote_id,
-      user_id: userId.value,
       options: selectedOptions.value.map(optionId => ({ option_id: optionId }))
     };
 
@@ -182,7 +166,7 @@ const submitVotes = async () => {
     if (response.status === 201) {
       console.log('投票提交成功:', response.data);
       selectedOptions.value = [];
-      fetchResultsData(voteData.value.vote.vote_id); // 提交成功后重新获取投票结果数据
+      await fetchResultsData(voteData.value.vote.vote_id); // 提交成功后重新获取投票结果数据
       router.push({ name: 'finishedvote', query: { vote_id: voteData.value.vote.vote_id ,user_id: userId.value } });
     }
   } catch (error) {
@@ -190,25 +174,7 @@ const submitVotes = async () => {
   }
 };
 
-const chartRef = ref(null);
-
 onMounted(async () => {
-  await fetchVoteData(); // 等待投票数据和结果数据获取完成
-
-  // 初始化 Echarts 图表
-  const myChart = echarts.init(chartRef.value);
-  myChart.setOption({
-    xAxis: {
-      type: 'category',
-      data: optionData.value // 使用投票选项的标题作为 x 轴数据
-    },
-    yAxis: {
-      type: 'value'
-    },
-    series: [{
-      type: 'bar',
-      data: resultData.value // 使用投票结果的 count 作为柱状图数据
-    }]
-  });
+  await fetchVoteData(); 
 });
 </script>

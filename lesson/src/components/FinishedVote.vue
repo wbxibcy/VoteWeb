@@ -5,7 +5,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url('@/assets/govote.png');
+  background-image: url('@/assets/myvote.png');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -44,6 +44,12 @@
   flex-grow: 1;
 }
 
+.scrollable-content {
+  flex: 1;
+  overflow-y: auto; /* 使内容可垂直滚动 */
+}
+
+
 .vote-details h1 {
   font-size: 32px;
   color: #409EFF;
@@ -75,6 +81,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  padding: 20px; /* 添加内边距 */
 }
 
 .b-container {
@@ -84,7 +91,6 @@
   margin: auto;
 }
 </style>
-
 
 <template>
   <div class="wrapper">
@@ -96,30 +102,30 @@
       <el-menu-item index="home" style="color: #409EFF;font-weight: bold;">返回首页</el-menu-item>
     </el-menu>
 
-    <div class="cb-container">
-      <div class="b-container">
-        <div style="width: 80%;">
-          <el-table :data="optionData">
-            <el-table-column prop="option_title" label="投票选项"></el-table-column>
-          </el-table>
+    
+    <div class="scrollable-content">
+      <div class="cb-container">
+        <div class="b-container">
+          <div style="width: 80%;">
+            <el-table :data="optionData">
+              <el-table-column prop="option_title" label="投票选项"></el-table-column>
+            </el-table>
+          </div>
+          <div style="width: 80%;">
+            <el-table :data="resultData">
+              <el-table-column prop="count" label="投票数量"></el-table-column>
+            </el-table>
+          </div>
         </div>
-        <div style="width: 80%;">
-          <el-table :data="resultData">
-            <el-table-column prop="count" label="投票数量"></el-table-column>
-          </el-table>
-        </div>
-      </div>
 
-      <div class="charts-container">
-        <div ref="bar" style="width: 500px; height: 400px;"></div>
-        <div ref="line" style="width: 500px; height: 400px;"></div>
-        <div ref="pie" style="width: 500px; height: 400px;"></div>
+        <div class="charts-container">
+          <div ref="bar" style="width: 450px; height: 450px;"></div>
+          <div ref="line" style="width: 450px; height: 450px;"></div>
+          <div ref="pie" style="width: 450px; height: 450px;"></div>
+        </div>
       </div>
     </div>
   </div>
-
-
-
 </template>
 
 <script setup>

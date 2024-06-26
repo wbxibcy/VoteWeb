@@ -1,10 +1,8 @@
-<style scoped>
-.wrapper {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  height: 100vh; /* 占满整个视口高度 */
   background-image: url('@/assets/myvote.png');
   background-size: cover;
   background-position: center;
@@ -46,7 +44,10 @@
 
 .scrollable-content {
   flex: 1;
-  overflow-y: auto; /* 使内容可垂直滚动 */
+  overflow-y: auto;
+  /* 使内容可垂直滚动 */
+  padding-top: 100px;
+  /* 确保内容不被顶部菜单遮挡 */
 }
 
 
@@ -57,7 +58,8 @@
 
 .vote-details p {
   font-size: 18px;
-  color: #333;
+  font-weight: bold;
+  color: whitesmoke;
 }
 
 .vote-details ul {
@@ -81,7 +83,8 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 20px; /* 添加内边距 */
+  padding: 20px;
+  /* 添加内边距 */
 }
 
 .b-container {
@@ -93,7 +96,6 @@
 </style>
 
 <template>
-  <div class="wrapper">
     <el-menu :default-active="activeIndex" class="el-menu" mode="horizontal" :ellipsis="false" @select="handleSelect">
       <div class="logo-title">
         <img src="../assets/logo.png" alt="Logo" class="logo" />
@@ -102,30 +104,35 @@
       <el-menu-item index="home" style="color: #409EFF;font-weight: bold;">返回首页</el-menu-item>
     </el-menu>
 
-    
-    <div class="scrollable-content">
-      <div class="cb-container">
-        <div class="b-container">
-          <div style="width: 80%;">
-            <el-table :data="optionData">
-              <el-table-column prop="option_title" label="投票选项"></el-table-column>
-            </el-table>
-          </div>
-          <div style="width: 80%;">
-            <el-table :data="resultData">
-              <el-table-column prop="count" label="投票数量"></el-table-column>
-            </el-table>
-          </div>
-        </div>
-
-        <div class="charts-container">
-          <div ref="bar" style="width: 450px; height: 450px;"></div>
-          <div ref="line" style="width: 450px; height: 450px;"></div>
-          <div ref="pie" style="width: 450px; height: 450px;"></div>
-        </div>
+    <div class="scrollable-content">  
+  <div class="cb-container">
+    <div class="vote-details" v-if="voteData">
+        <h1>投票名称为{{ voteData.vote.vote_title }}</h1>
+        <p>投票描述为{{ voteData.vote.vote_description }}</p>
+        <p>投票状态为{{ voteData.vote.status }}</p>
+        <p>投票开始时间为{{ voteData.vote.start_time }}</p>
+        <p>投票结束时间为{{ voteData.vote.end_time }}</p>
+      </div>
+    <div class="b-container">
+      <div style="width: 80%;">
+        <el-table :data="optionData">
+          <el-table-column prop="option_title" label="投票选项"></el-table-column>
+        </el-table>
+      </div>
+      <div style="width: 80%;">
+        <el-table :data="resultData">
+          <el-table-column prop="count" label="投票数量"></el-table-column>
+        </el-table>
       </div>
     </div>
+
+    <div class="charts-container">
+      <div ref="bar" style="width: 450px; height: 450px;"></div>
+      <div ref="line" style="width: 450px; height: 450px;"></div>
+      <div ref="pie" style="width: 450px; height: 450px;"></div>
+    </div>
   </div>
+</div>
 </template>
 
 <script setup>
@@ -144,9 +151,10 @@ const optionData = ref([]);
 const resultData = ref([]);
 const activeIndex = ref('finishedvote')
 
+
 const handleSelect = (index) => {
   activeIndex.value = index
-  router.push({ name: index , query: { user_id: userId }})
+  router.push({ name: index, query: { user_id: userId } })
 }
 
 const fetchVoteData = async () => {
@@ -158,6 +166,11 @@ const fetchVoteData = async () => {
         option_id: option.option_id,
         option_title: option.option_title
       }));
+      // formData.value.vote_title = data.vote_title;
+      // formData.value.vote_status = data.status;
+      // formData.value.start_time = data.start_time; // 不进行额外的格式化
+      // formData.value.end_time = data.end_time; // 不进行额外的格式化
+      // formData.value.vote_description = data.vote_description;
       await fetchResultsData(response.data.vote.vote_id);
     } else {
       throw new Error(`获取投票内容失败: 状态码 ${response.status}`);

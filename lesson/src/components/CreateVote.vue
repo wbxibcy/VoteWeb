@@ -135,7 +135,7 @@ onMounted(() => {
 
 const formData = ref({
   vote_title: '',
-  status: '', // 添加 vote_status 属性
+  vote_status: '', // 添加 vote_status 属性
   vote_description: '',
   start_time: '',
   end_time: '',
@@ -161,19 +161,19 @@ const confirmVote = async () => {
       return;
     }
     // 输出formData.value.status的类型
-    console.log('formData.value.status的类型:', typeof formData.value.status);
-    console.log(formData.value.status)
-    // // 检查开始时间是否在当前时间之前且状态为open
-    // if (startTime > currentTime) {
-    //   ElMessage.error('开始时间不能晚于当前时间且状态为open');
-    //   return;
-    // }
+    console.log('formData.value.status的类型:', typeof formData.value.vote_status);
+    console.log(formData.value.vote_status)
+    // 检查开始时间是否在当前时间之前且状态为open
+    if (startTime > currentTime && formData.value.vote_status === 'open') {
+      ElMessage.error('开始时间不能晚于当前时间且状态为open');
+      return;
+    }
 
-    // // 检查开始时间是否在当前时间之前且状态为Unstarted
-    // if (startTime < currentTime && formData.value.status === 'Unstarted') {
-    //   ElMessage.error('开始时间不能早于当前时间且状态为Unstarted');
-    //   return;
-    // }
+    // 检查开始时间是否在当前时间之前且状态为Unstarted
+    if (startTime < currentTime && formData.value.vote_status === 'Unstarted') {
+      ElMessage.error('开始时间不能早于当前时间且状态为Unstarted');
+      return;
+    }
 
     // 创建投票数据
     const voteDataToInsert = {
@@ -182,14 +182,14 @@ const confirmVote = async () => {
       vote_description: formData.value.vote_description,
       start_time: formData.value.start_time,
       end_time: formData.value.end_time,
-      status: formData.value.status,
+      status: formData.value.vote_status,
       min_votes: formData.value.min_votes,
       max_votes: formData.value.max_votes,
     };
-    console.log(formData.value.status);
+    // console.log(formData.value.status);
 
     // 发送投票数据的请求
-    // const voteResponse = await axios.post('http://localhost:3000/votes', voteDataToInsert);
+    const voteResponse = await axios.post('http://localhost:3000/votes', voteDataToInsert);
     if (voteResponse.status === 201) {
       console.log('投票创建成功，投票ID:', voteResponse.data.vote_id);
       console.log('投票码:', voteResponse.data.vote_code);
@@ -218,7 +218,7 @@ const confirmVote = async () => {
         formData.value.vote_description = '';
         formData.value.start_time = '';
         formData.value.end_time = '';
-        formData.value.status = '';
+        formData.value.vote_status = '';
         formData.value.min_votes = null;
         formData.value.max_votes = null;
         formData.value.options = [''];

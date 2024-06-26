@@ -116,6 +116,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import axios from 'axios';
 import { ElMessageBox, ElMessage } from 'element-plus';
+import QRCode from 'qrcode';
 
 const router = useRouter()
 const activeIndex = ref('createvote')

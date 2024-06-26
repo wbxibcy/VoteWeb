@@ -107,6 +107,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
+import { ElMessageBox } from 'element-plus';
 
 const router = useRouter();
 const route = useRoute();
@@ -159,6 +160,7 @@ const submitVotes = async () => {
 
     const postData = {
       vote_id: voteData.value.vote.vote_id,
+      user_id: userId.value,
       options: selectedOptions.value.map(optionId => ({ option_id: optionId }))
     };
 
@@ -170,7 +172,10 @@ const submitVotes = async () => {
       router.push({ name: 'finishedvote', query: { vote_id: voteData.value.vote.vote_id ,user_id: userId.value } });
     }
   } catch (error) {
-    console.error('投票提交失败:', error.message);
+    if (error.response && error.response.status === 400) {
+      console.error('投票提交失败:', error.message);
+      ElMessageBox.alert('每人只能投一次票噢', '错误');
+    }
   }
 };
 

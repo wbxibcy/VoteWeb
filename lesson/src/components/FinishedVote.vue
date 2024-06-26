@@ -264,6 +264,9 @@ onMounted(async () => {
   createChart(bar.value, 'bar');
   createChart(line.value, 'line');
   createPieChart(pie.value);
+
+  // Initialize WebSocket
+  initializeWebSocket();
 });
 
 // Watch optionData and resultData changes to update charts
@@ -272,4 +275,28 @@ watch([optionData, resultData], () => {
   createChart(line.value, 'line');
   createPieChart(pie.value);
 });
+
+const initializeWebSocket = () => {
+  const ws = new WebSocket('ws://localhost:3000');
+  
+  ws.onopen = () => {
+    console.log('WebSocket 连接已建立');
+  };
+
+  ws.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    if (message.results) {
+      fetchVoteData();
+      console.log(resultData);
+    }
+  };
+
+  ws.onclose = () => {
+    console.log('WebSocket 连接已关闭');
+  };
+
+  ws.onerror = (error) => {
+    console.error('WebSocket 错误:', error);
+  };
+};
 </script>

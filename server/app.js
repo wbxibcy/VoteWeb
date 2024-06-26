@@ -5,8 +5,11 @@ const http = require('http');
 const WebSocket = require('ws');
 const cron = require('node-cron');
 const { persistDataToMySQL } = require('./controllers/persistController');
-// 定时任务，每分钟执行一次
-cron.schedule('* * * * *', persistDataToMySQL);
+// 定时任务设置，每分钟执行一次
+// cron.schedule('* * * * *', () => {
+//     console.log('Running the data persistence job');
+//     persistDataToMySQL();
+//   });
 
 
 const app = express();

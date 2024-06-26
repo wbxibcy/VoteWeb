@@ -211,3 +211,11 @@
 - Response:
   - `200 OK`：返回特定投票的结果。
   - `500 Internal Server Error`：服务器错误。
+
+#### 导出投票结果（Get Results by Vote ID）
+
+- **URL:** `/export/:vote_id`
+- **Method:** `GET`
+- Response:
+  - `200 OK`：返回投票的结果。
+  - `500 Internal Server Error`：服务器错误。

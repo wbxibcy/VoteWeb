@@ -50,6 +50,7 @@
 import { ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
+import { ElMessage } from 'element-plus';
 
 const router = useRouter();
 const voteCode = ref('');
@@ -62,14 +63,16 @@ const submitVoteCode = async () => {
     if (response.status === 200) {
       console.log('提交投票码成功:', response.data);
       // 传递正确的参数给 govote 页面
-      router.push({ name: 'govote', params: { voteCode: voteCode.value }, query: { user_id: userId  }});
+      router.push({ name: 'govote', params: { voteCode: voteCode.value }, query: { user_id: userId } });
     }
   } catch (error) {
     if (error.response) {
       if (error.response.status === 404) {
         console.error('没有找到对应投票码的投票信息');
+        ElMessage.error('未找到匹配的投票码，请检查您的投票码是否正确');
       } else if (error.response.status === 500) {
         console.error('服务器错误');
+        ElMessage.error('服务器遇到问题，请稍后再试');
       }
     } else {
       console.error('请求错误:', error.message);

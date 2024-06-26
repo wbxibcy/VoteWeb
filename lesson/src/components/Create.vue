@@ -75,8 +75,12 @@ const validateConfirmPassword = (rule, value, callback) => {
 };
 
 const rules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  username: [{ required: true, message: '请输入用户名', trigger: 'blur' },
+  { pattern: /^[a-zA-Z0-9]{4,16}$/, message: '用户名必须为4到16位字母或数字', trigger: 'blur' }
+  ],
+  password: [{ required: true, message: '请输入密码', trigger: 'blur' },
+  { pattern: /^[A-Za-z\d]{6,20}$/, message: '密码必须为6到20位字符', trigger: 'blur' }
+  ],
   confirmPassword: [
     { required: true, message: '请确认密码', trigger: 'blur' },
     { validator: validateConfirmPassword, trigger: 'blur' }

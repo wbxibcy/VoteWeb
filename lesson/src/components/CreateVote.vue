@@ -69,8 +69,8 @@
       <el-form :model="formData" label-width="120px">
         <el-form-item>
           <h2 style="color: #409EFF; font-weight: bold;">创建投票<br>
-          <div id="voteCodeContainer" style="color: whitesmoke; font-weight: bold;"></div>
-        </h2>
+            <div id="voteCodeContainer" style="color: whitesmoke; font-weight: bold;"></div>
+          </h2>
         </el-form-item>
         <el-form-item label="投票名称" prop="vote_title">
           <el-input v-model="formData.vote_title"></el-input>
@@ -115,6 +115,7 @@
 import { useRouter, useRoute } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import axios from 'axios';
+import { ElMessageBox, ElMessage } from 'element-plus';
 
 const router = useRouter()
 const activeIndex = ref('createvote')
@@ -123,7 +124,7 @@ const userId = route.query.user_id;
 
 const handleSelect = (index) => {
   activeIndex.value = index
-  router.push({ name: index , query: { user_id: userId }})
+  router.push({ name: index, query: { user_id: userId } })
 }
 
 onMounted(() => {
@@ -150,6 +151,30 @@ const addOption = () => {
 
 const confirmVote = async () => {
   try {
+    const currentTime = new Date();
+    const startTime = new Date(formData.value.start_time);
+    const endTime = new Date(formData.value.end_time);
+
+    // 检查开始时间和结束时间是否合理
+    if (startTime >= endTime) {
+      ElMessage.error('结束时间必须晚于开始时间');
+      return;
+    }
+    // 输出formData.value.status的类型
+    console.log('formData.value.status的类型:', typeof formData.value.status);
+    console.log(formData.value.status)
+    // // 检查开始时间是否在当前时间之前且状态为open
+    // if (startTime > currentTime) {
+    //   ElMessage.error('开始时间不能晚于当前时间且状态为open');
+    //   return;
+    // }
+
+    // // 检查开始时间是否在当前时间之前且状态为Unstarted
+    // if (startTime < currentTime && formData.value.status === 'Unstarted') {
+    //   ElMessage.error('开始时间不能早于当前时间且状态为Unstarted');
+    //   return;
+    // }
+
     // 创建投票数据
     const voteDataToInsert = {
       user_id: formData.value.user_id,
@@ -161,18 +186,21 @@ const confirmVote = async () => {
       min_votes: formData.value.min_votes,
       max_votes: formData.value.max_votes,
     };
+    console.log(formData.value.status);
 
     // 发送投票数据的请求
-    const voteResponse = await axios.post('http://localhost:3000/votes', voteDataToInsert);
+    // const voteResponse = await axios.post('http://localhost:3000/votes', voteDataToInsert);
     if (voteResponse.status === 201) {
       console.log('投票创建成功，投票ID:', voteResponse.data.vote_id);
       console.log('投票码:', voteResponse.data.vote_code);
 
-      // 获取页面上的元素
-      const voteCodeContainer = document.getElementById('voteCodeContainer');
-
-      // 在元素中插入投票码
-      voteCodeContainer.textContent = `投票码: ${voteResponse.data.vote_code}`;
+      // 显示弹窗
+      ElMessageBox.alert(`您的投票码是: ${voteResponse.data.vote_code}`, '投票创建成功', {
+        confirmButtonText: '确定',
+        callback: () => {
+          console.log('弹窗关闭');
+        },
+      });
 
       // 创建选项数据
       const optionsDataToInsert = {
@@ -198,6 +226,7 @@ const confirmVote = async () => {
     }
   } catch (error) {
     console.error('投票或选项创建失败:', error.message);
+    ElMessage.error('创建投票或选项失败，请稍后再试');
   }
 };
 

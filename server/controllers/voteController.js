@@ -40,7 +40,7 @@ exports.getVotesByUserId = async (req, res) => {
 
     try {
         // 查询用户参与的投票，限制个数为10
-        const votes = await executeSql('SELECT * FROM votes WHERE user_id = ? LIMIT 10 DESC', [user_id]);
+        const votes = await executeSql('SELECT * FROM votes WHERE user_id = ? ORDER BY vote_id DESC LIMIT 10', [user_id]);
         
         // 查询每个投票的选项信息
         const votesWithOptions = await Promise.all(votes.map(async (vote) => {

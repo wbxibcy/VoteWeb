@@ -103,9 +103,8 @@ const userId = route.query.user_id;
 
 const handleSelect = (index) => {
   activeIndex.value = index
-  router.push({ name: index })
+  router.push({ name: index , query: { user_id: userId }})
 }
-
 
 const chartRef = ref(null)
 

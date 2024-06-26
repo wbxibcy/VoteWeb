@@ -44,14 +44,6 @@
   flex-grow: 1;
 }
 
-.govote-wrapper {
-  padding: 20px;
-}
-
-.vote-details {
-  text-align: center;
-}
-
 .vote-details h1 {
   font-size: 32px;
   color: #409EFF;
@@ -71,6 +63,27 @@
   font-size: 20px;
   margin: 10px 0;
 }
+
+.govote-wrapper {
+  display: flex;
+  justify-content: space-between;
+}
+
+.left-column {
+  width: 48%;
+  /* 调整左侧栏宽度 */
+}
+
+.right-column {
+  width: 48%;
+  /* 调整右侧栏宽度 */
+}
+
+.vote-details {
+  padding: 20px;
+  border-radius: 5px;
+  margin-bottom: 20px;
+}
 </style>
 
 
@@ -83,54 +96,119 @@
       <div class="flex-grow" />
       <el-menu-item index="home" style="color: #409EFF;font-weight: bold;">返回首页</el-menu-item>
     </el-menu>
+
     <div class="govote-wrapper">
-    <div class="vote-details" v-if="voteData">
-      <h1>{{ voteData.vote.vote_title }}</h1>
-      <p>{{ voteData.vote.vote_description }}</p>
-      <ul>
-        <li v-for="option in voteData.options" :key="option.option_id">
-          <el-checkbox v-model="selectedOptions" :label="option.option_id">{{ option.option_title }}</el-checkbox>
-        </li>
-      </ul>
+      <div class="left-column">
+        <div class="vote-details" v-if="voteData">
+          <h1>{{ voteData.vote.vote_title }}</h1>
+          <p>{{ voteData.vote.vote_description }}</p>
+          <ul>
+            <li v-for="option in voteData.options" :key="option.option_id">
+              <el-checkbox v-model="selectedOptions" :label="option.option_id">{{ option.option_title }}</el-checkbox>
+            </li>
+          </ul>
+          <el-button type="primary" @click="submitVotes" style="width: 100%;">确定</el-button>
+        </div>
+        <div v-else>
+          <p>正在加载投票内容...</p>
+        </div>
+      </div>
+      <div class="right-column">
+        <div ref="chartRef" style="width: 700px; height: 400px;"></div>
+      </div>
     </div>
-    <div v-else>
-      <p>正在加载投票内容...</p>
-    </div>
-    <el-button type="primary" @click="submitVotes" style="width: 400px;">确定</el-button>
   </div>
-  </div>
+
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import axios from 'axios';
-import { useRouter } from 'vue-router'
+import { useRouter } from 'vue-router';
+import * as echarts from 'echarts';
 
-const router = useRouter()
-const activeIndex = ref('myvote')
+const router = useRouter();
+const route = useRoute();
+const userId = ref(route.query.user_id);
+
+const voteCode = route.params.voteCode;
+const activeIndex = ref('myvote');
+const voteData = ref(null);
+const optionData = ref([]); // 使用 ref 初始化为数组
+const resultData = ref([]); // 使用 ref 初始化为数组
+const selectedOptions = ref([]);
 
 const handleSelect = (index) => {
-  activeIndex.value = index
-  router.push({ name: index })
-}
-
-const route = useRoute();
-const voteData = ref(null);
+  activeIndex.value = index;
+  router.push({ name: index, query: { user_id: userId.value } });
+};
 
 const fetchVoteData = async () => {
   try {
-    console.log(`http://localhost:3000/votes/code/${route.params.voteCode}`)
-    const response = await axios.get(`http://localhost:3000/votes/code/${route.params.voteCode}`);
+    const response = await axios.get(`http://localhost:3000/votes/code/${voteCode}`);
     if (response.status === 200) {
       voteData.value = response.data;
+      optionData.value = response.data.options.map(option => option.option_title); // 更新 optionData
+
+      // 获取投票结果数据
+      await fetchResultsData(response.data.vote.vote_id);
     }
   } catch (error) {
     console.error('获取投票内容失败:', error.message);
   }
 };
 
-onMounted(() => {
-  fetchVoteData();
+const fetchResultsData = async (voteId) => {
+  try {
+    const resultsResponse = await axios.get(`http://localhost:3000/results/${voteId}`);
+    if (resultsResponse.status === 200) {
+      resultData.value = resultsResponse.data.map(result => result.count); // 更新 resultData
+    }
+  } catch (error) {
+    console.error('获取投票结果失败:', error.message);
+  }
+};
+
+const submitVotes = async () => {
+  try {
+    const postData = {
+      vote_id: voteData.value.vote.vote_id,
+      user_id: userId.value,
+      options: selectedOptions.value.map(optionId => ({ option_id: optionId }))
+    };
+
+    const response = await axios.post('http://localhost:3000/results', postData);
+    if (response.status === 201) {
+      console.log('投票提交成功:', response.data);
+      selectedOptions.value = [];
+      fetchResultsData(voteData.value.vote.vote_id); // 提交成功后重新获取投票结果数据
+      router.push({ name: 'finishedvote', query: { vote_id: voteData.value.vote.vote_id ,user_id: userId.value } });
+    }
+  } catch (error) {
+    console.error('投票提交失败:', error.message);
+  }
+};
+
+const chartRef = ref(null);
+
+onMounted(async () => {
+  await fetchVoteData(); // 等待投票数据和结果数据获取完成
+
+  // 初始化 Echarts 图表
+  const myChart = echarts.init(chartRef.value);
+  myChart.setOption({
+    xAxis: {
+      type: 'category',
+      data: optionData.value // 使用投票选项的标题作为 x 轴数据
+    },
+    yAxis: {
+      type: 'value'
+    },
+    series: [{
+      type: 'bar',
+      data: resultData.value // 使用投票结果的 count 作为柱状图数据
+    }]
+  });
 });
 </script>

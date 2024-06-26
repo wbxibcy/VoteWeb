@@ -68,7 +68,9 @@
     <div class="vote-input">
       <el-form :model="formData" label-width="120px">
         <el-form-item>
-          <h2 style="color: #409EFF; font-weight: bold;">创建投票</h2>
+          <h2 style="color: #409EFF; font-weight: bold;">创建投票<br>
+          <div id="voteCodeContainer" style="color: whitesmoke; font-weight: bold;"></div>
+        </h2>
         </el-form-item>
         <el-form-item label="投票名称" prop="vote_title">
           <el-input v-model="formData.vote_title"></el-input>
@@ -76,7 +78,7 @@
         <el-form-item label="投票状态" prop="status">
           <el-select v-model="formData.vote_status" placeholder="请选择投票状态">
             <el-option label="Open" value="open"></el-option>
-            <el-option label="Closed" value="closed"></el-option>
+            <el-option label="Unstarted" value="Unstarted"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item label="开始时间" prop="start_time">
@@ -87,12 +89,12 @@
           <el-date-picker v-model="formData.end_time" type="datetime"
             :value-format="'YYYY-MM-DDTHH:mm:ss'"></el-date-picker>
         </el-form-item>
-        <el-form-item label="最少投票次数" prop="min_votes">
+        <!-- <el-form-item label="最少投票次数" prop="min_votes">
           <el-input v-model.number="formData.min_votes" type="number"></el-input>
         </el-form-item>
         <el-form-item label="最多投票次数" prop="max_votes">
           <el-input v-model.number="formData.max_votes" type="number"></el-input>
-        </el-form-item>
+        </el-form-item> -->
         <el-form-item label="投票描述" prop="vote_description">
           <el-input v-model="formData.vote_description"></el-input>
         </el-form-item>
@@ -117,10 +119,11 @@ import axios from 'axios';
 const router = useRouter()
 const activeIndex = ref('createvote')
 const route = useRoute();
+const userId = route.query.user_id;
 
 const handleSelect = (index) => {
   activeIndex.value = index
-  router.push({ name: index })
+  router.push({ name: index , query: { user_id: userId }})
 }
 
 onMounted(() => {
@@ -135,8 +138,8 @@ const formData = ref({
   vote_description: '',
   start_time: '',
   end_time: '',
-  min_votes: null,
-  max_votes: null,
+  min_votes: 1,
+  max_votes: 1,
   options: [''],
   user_id: null
 });
@@ -164,6 +167,12 @@ const confirmVote = async () => {
     if (voteResponse.status === 201) {
       console.log('投票创建成功，投票ID:', voteResponse.data.vote_id);
       console.log('投票码:', voteResponse.data.vote_code);
+
+      // 获取页面上的元素
+      const voteCodeContainer = document.getElementById('voteCodeContainer');
+
+      // 在元素中插入投票码
+      voteCodeContainer.textContent = `投票码: ${voteResponse.data.vote_code}`;
 
       // 创建选项数据
       const optionsDataToInsert = {

@@ -62,7 +62,7 @@ const submitVoteCode = async () => {
     if (response.status === 200) {
       console.log('提交投票码成功:', response.data);
       // 传递正确的参数给 govote 页面
-      router.push({ name: 'govote', params: { voteCode: voteCode.value } });
+      router.push({ name: 'govote', params: { voteCode: voteCode.value }, query: { user_id: userId  }});
     }
   } catch (error) {
     if (error.response) {

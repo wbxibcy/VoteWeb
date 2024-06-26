@@ -74,9 +74,16 @@
 
       <div class="container">
         <el-button-group>
-          <el-button class="rounded-rectangle" v-for="(title, index) in titlesToShow" :key="index" @click="goToOngoingVotes">{{ title }}</el-button>
+          <el-button
+            class="rounded-rectangle"
+            v-for="(vote, index) in votesToShow"
+            :key="index"
+            @click="goToOngoingVotes(vote.vote_id)"
+          >
+            {{ vote.vote_title }}
+          </el-button>
         </el-button-group>
-       
+
         <el-button class="rounded-rectangle" type="primary" @click="goToCreateVotes">创建投票</el-button>
       </div>
       <p class="menu-text" style="color: #409EFF;font-weight: bold;">已完成投票</p>
@@ -96,8 +103,7 @@ const router = useRouter();
 const activeIndex = ref('myvote');
 const chartRef = ref(null);
 const userId = route.query.user_id;
-const voteCode = ref('');
-const titles = ref([]);
+const votes = ref([]); // Array to store vote objects
 
 onMounted(() => {
   echarts.init(chartRef.value).setOption({
@@ -128,30 +134,25 @@ const goToCreateVotes = () => {
   router.push({ name: 'createvote', query: { user_id: userId } });
 };
 
-const goToOngoingVotes = () => {
-  router.push({ name: 'ongoingvote', params: { voteCode: voteCode.value }, query: { user_id: userId,voteCode: voteCode.value } });
+const goToOngoingVotes = (voteId) => {
+  router.push({ name: 'ongoingvote', query: { user_id: userId, vote_id: voteId } });
 };
 
 const fetchTitlesAndVoteId = () => {
   axios.get(`http://localhost:3000/votes/user/${userId}`, {
     params: {
-      fields: 'vote_title,vote_code,status', // Fetching vote_title, vote_code, and status
+      fields: 'vote_title,vote_id,status', // Fetching vote_title, vote_id, and status
     }
   })
   .then(response => {
     // Filter out titles where status is not 'closed' and map to titles
-    titles.value = response.data.filter(vote => vote.status !== 'closed').slice(0, 4).map(vote => vote.vote_title);
-    // Find and set the first vote_code that is not 'closed'
-    const firstVote = response.data.find(vote => vote.status !== 'closed');
-    if (firstVote) {
-      voteCode.value = firstVote.vote_code;
-    }
+    votes.value = response.data.filter(vote => vote.status !== 'closed').slice(0, 4);
   })
   .catch(error => {
-    console.error('Error fetching vote titles and vote code:', error);
+    console.error('Error fetching vote titles and vote id:', error);
   });
 };
 
-// Computed property to limit titles to show
-const titlesToShow = computed(() => titles.value.slice(0, 4));
+// Computed property to limit votes to show
+const votesToShow = computed(() => votes.value.slice(0, 4));
 </script>

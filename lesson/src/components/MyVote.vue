@@ -71,16 +71,11 @@
     </el-menu>
     <div class="menu-extras">
       <p class="menu-text" style="color: #409EFF;font-weight: bold;">未完成投票</p>
+
       <div class="container">
-        <div class="rounded-rectangle">
-
-        </div>
-        <div class="rounded-rectangle">
-
-        </div>
-        <div class="rounded-rectangle">
-
-        </div>
+        <el-button-group>
+          <el-button class="rounded-rectangle" v-for="(title, index) in titlesToShow" :key="index" @click="goToOngoingVotes">{{ title }}</el-button>
+        </el-button-group>
        
         <el-button class="rounded-rectangle" type="primary" @click="goToCreateVotes">创建投票</el-button>
       </div>
@@ -92,21 +87,17 @@
 
 <script setup>
 import { useRouter, useRoute } from 'vue-router';
-import { ref } from 'vue'
-import * as echarts from 'echarts'
-import { onMounted } from "vue";
+import { ref, computed, onMounted } from 'vue';
+import axios from 'axios';
+import * as echarts from 'echarts';
 
-const router = useRouter()
-const activeIndex = ref('myvote')
 const route = useRoute();
+const router = useRouter();
+const activeIndex = ref('myvote');
+const chartRef = ref(null);
 const userId = route.query.user_id;
-
-const handleSelect = (index) => {
-  activeIndex.value = index
-  router.push({ name: index , query: { user_id: userId }})
-}
-
-const chartRef = ref(null)
+const voteCode = ref('');
+const titles = ref([]);
 
 onMounted(() => {
   echarts.init(chartRef.value).setOption({
@@ -124,9 +115,43 @@ onMounted(() => {
       }
     ]
   });
+
+  fetchTitlesAndVoteId();
 });
+
+const handleSelect = (index) => {
+  activeIndex.value = index;
+  router.push({ name: index, query: { user_id: userId } });
+};
 
 const goToCreateVotes = () => {
   router.push({ name: 'createvote', query: { user_id: userId } });
 };
+
+const goToOngoingVotes = () => {
+  router.push({ name: 'ongoingvote', params: { voteCode: voteCode.value }, query: { user_id: userId,voteCode: voteCode.value } });
+};
+
+const fetchTitlesAndVoteId = () => {
+  axios.get(`http://localhost:3000/votes/user/${userId}`, {
+    params: {
+      fields: 'vote_title,vote_code,status', // Fetching vote_title, vote_code, and status
+    }
+  })
+  .then(response => {
+    // Filter out titles where status is not 'closed' and map to titles
+    titles.value = response.data.filter(vote => vote.status !== 'closed').slice(0, 4).map(vote => vote.vote_title);
+    // Find and set the first vote_code that is not 'closed'
+    const firstVote = response.data.find(vote => vote.status !== 'closed');
+    if (firstVote) {
+      voteCode.value = firstVote.vote_code;
+    }
+  })
+  .catch(error => {
+    console.error('Error fetching vote titles and vote code:', error);
+  });
+};
+
+// Computed property to limit titles to show
+const titlesToShow = computed(() => titles.value.slice(0, 4));
 </script>

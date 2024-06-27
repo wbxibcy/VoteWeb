@@ -47,16 +47,33 @@
 .rounded-rectangle {
   width: 200px;
   height: 100px;
-  background-color: #409EFF;
+  color: #409EFF;
   border-radius: 15px;
   margin-top: 20px;
 }
 
 .container {
   display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
+  flex-direction: column;
+  align-items: center;
 }
+
+.button-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 20px; /* 调整与其他内容的间距 */
+}
+
+.custom-button {
+  border: 2px solid white;
+  background-color: transparent;
+  color: white;
+  font-weight: bold;
+  border-radius: 4px; /* 可以根据需要调整 */
+  margin: 20px; /* 增加按钮之间的间距 */
+}
+
 
 .chart-container-wrapper {
   display: flex;
@@ -84,29 +101,30 @@
       <div class="flex-grow" />
       <el-menu-item index="home" style="color: #409EFF;font-weight: bold;">返回首页</el-menu-item>
     </el-menu>
-    <div class="menu-extras">
+    
+    <div class="container">
+      <div class="menu-extras">
       <p class="menu-text" style="color: #409EFF;font-weight: bold;">未完成投票</p>
-
-      <div class="container">
-        <el-button-group>
-          <el-button
-            class="rounded-rectangle"
-            v-for="(vote, index) in votesToShow"
-            :key="index"
-            @click="goToOngoingVotes(vote.vote_id)"
-          >
-            {{ vote.vote_title }}
-          </el-button>
-        </el-button-group>
-
-        <el-button class="rounded-rectangle" type="primary" @click="goToCreateVotes">创建投票</el-button>
-      </div>
-      <p class="menu-text" style="color: #409EFF;font-weight: bold;">已完成投票</p>
-      <div class="chart-container-wrapper">
-        <div v-for="(vote, index) in closedvotes" :key="index" :ref="el => chartRefs[index] = el" class="chart-container"></div>
-      </div>
     </div>
+  <div class="button-container">
+    <el-button
+      class="rounded-rectangle custom-button"
+      v-for="(vote, index) in votesToShow"
+      :key="index"
+      @click="goToOngoingVotes(vote.vote_id)"
+    >
+      {{ vote.vote_title }}
+    </el-button>
+    <el-button class="rounded-rectangle custom-button" @click="goToCreateVotes">创建投票</el-button>
   </div>
+  <p class="menu-text" style="color: #409EFF; font-weight: bold;">已完成投票</p>
+  <div class="chart-container-wrapper">
+    <div v-for="(vote, index) in closedvotes" :key="index" :ref="el => chartRefs[index] = el" class="chart-container"></div>
+  </div>
+</div>
+</div>
+
+
 </template>
 
 <script setup>
@@ -168,22 +186,22 @@ const fetchResultsAndDrawChart = (voteId, voteTitle, index) => {
   axios.get(`http://localhost:3000/results/export/${voteId}`)
     .then(response => {
       const results = response.data.results;
-      drawChart(index, results, voteTitle);
+      drawChart(index, results, voteTitle, voteId);
     })
     .catch(error => {
       console.error('Error fetching vote results:', error);
     });
 };
 
-const drawChart = (index, data, voteTitle) => {
+const drawChart = (index, data, voteTitle, voteId) => {
   if (chartRefs.value[index]) {
     const chartInstance = echarts.init(chartRefs.value[index]);
     chartInstance.setOption({
       title: {
-        text: voteTitle, // 使用 voteTitle 作为图表的标题
+        text: voteTitle,
         left: 'center',
         textStyle: {
-          color: '#409EFF'
+          // Customize text style here
         }
       },
       tooltip: {
@@ -211,7 +229,7 @@ const drawChart = (index, data, voteTitle) => {
         },
         axisLine: {
           lineStyle: {
-            color: '#409EFF'
+            // Customize axis line style here
           }
         }
       },
@@ -219,7 +237,7 @@ const drawChart = (index, data, voteTitle) => {
         type: 'value',
         axisLine: {
           lineStyle: {
-            color: '#409EFF'
+            // Customize axis line style here
           }
         }
       },
@@ -228,13 +246,24 @@ const drawChart = (index, data, voteTitle) => {
         type: 'bar',
         data: data.map(item => item.count),
         itemStyle: {
-          color: '#409EFF'
+          // Customize item style here
         },
         label: {
           show: true,
           position: 'top'
         }
       }]
+    });
+
+    // Add click event listener
+    chartInstance.on('click', () => {
+      router.push({
+        name: 'finishedvote',
+        query: {
+          vote_id: voteId,
+          user_id: userId.value
+        }
+      });
     });
   }
 };

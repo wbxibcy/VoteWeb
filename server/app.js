@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const http = require('http');
 const WebSocket = require('ws');
 const cron = require('node-cron');
+const path = require('path');
 const { persistDataToMySQL } = require('./controllers/persistController');
 // 定时任务设置，每分钟执行一次
 // cron.schedule('* * * * *', () => {
@@ -11,10 +12,12 @@ const { persistDataToMySQL } = require('./controllers/persistController');
 //     persistDataToMySQL();
 //   });
 
-
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
+
+// 指定静态文件路径为 Vue 打包后的 dist 文件夹
+app.use(express.static(path.join(__dirname, '../lesson/dist')));
 
 // 允许所有来源访问
 app.use(cors());

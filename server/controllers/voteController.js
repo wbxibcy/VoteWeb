@@ -184,21 +184,20 @@ exports.getVoteByCode = async (req, res) => {
 
 exports.updateVote = async (req, res) => {
     const { vote_id } = req.params;
-    const { vote_title, vote_description, start_time, end_time, status } = req.body;
+    const { user_id, vote_title, vote_description, start_time, end_time, status } = req.body;
     const token = req.headers.authorization;
 
     try {
         // Validate token
-        const validToken = await validateToken(token);
+        const validToken = await validateToken(token, user_id);
 
         if (!validToken) {
             return res.status(403).send('Unauthorized: Invalid token');
         }
 
-        const authUserId = validToken.id;
 
         // Check if the vote belongs to the authenticated user
-        const voteCheck = await executeSql('SELECT * FROM votes WHERE vote_id = ? AND user_id = ?', [vote_id, authUserId]);
+        const voteCheck = await executeSql('SELECT * FROM votes WHERE vote_id = ? AND user_id = ?', [vote_id, user_id]);
         if (voteCheck.length === 0) {
             return res.status(403).send('User does not have permission to update this vote');
         }
@@ -276,6 +275,7 @@ exports.updateVote = async (req, res) => {
             valuesToUpdate.push(vote_id);
 
             const updateQuery = `UPDATE votes SET ${fieldsToUpdate.join(', ')} WHERE vote_id = ?`;
+            console.log(updateQuery);
             await executeSql(updateQuery, valuesToUpdate);
 
             res.status(200).send('Vote updated');
@@ -291,11 +291,12 @@ exports.updateVote = async (req, res) => {
 
 exports.deleteVote = async (req, res) => {
     const { vote_id } = req.params;
-    const token = req.headers.authorization;
+    const authHeader = req.headers.authorization;
 
     try {
         // Validate token
-        const validToken = await validateToken(token);
+        const token = authHeader.split(' ')[1];
+        const validToken = jwt.verify(token, process.env.JWT_SECRET);
 
         if (!validToken) {
             return res.status(403).send('Unauthorized: Invalid token');

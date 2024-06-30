@@ -119,14 +119,17 @@
 
 - **Method:** `PUT`
 
+- **Header：**`token`
+
 - Request Body:
 
   ```json
   {
-    "vote_title": "Updated Title",
+    "user_id": 31,
+    "vote_title": "Updated Title1",
     "start_time": "2024-06-21T00:00:00",
     "end_time": "2024-06-30T23:59:59",
-    "status": "closed"
+    "status": "open"
   }
   ```
   

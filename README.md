@@ -68,7 +68,6 @@
     "vote_description": "Vote for your favorite programming language",
     "start_time": "2024-06-21T00:00:00",
     "end_time": "2024-06-30T23:59:59",
-    "status": "open",
     "min_votes": 1,
     "max_votes": 1,
     "options": [
@@ -87,9 +86,19 @@
 #### 根据用户ID获取投票信息 (Get Vote by user_ID) 
 
 - **URL:** `/votes/user/:user_id` 
+
+  - 注意：可以动态构建url
+    例如：`/votes/user/31?name=手游选择&status=closed`
+    	    `/votes/user/31?name=手游选择`
+
+    ​	    `/votes/user/31?status=open`
+
 - **Method:** `GET` 
+
 - **Header：**`token`
+
 - Response: 
+
 - - `200 OK`: 返回用户id的投票信息。   
   - `404 Not Found`: 没有找到对应投票码的投票信息。  
   - `500 Internal Server Error`: 服务器错误。
@@ -115,15 +124,12 @@
   ```json
   {
     "vote_title": "Updated Title",
-    "vote_description": "Updated Description",
     "start_time": "2024-06-21T00:00:00",
     "end_time": "2024-06-30T23:59:59",
-    "status": "closed",
-    "min_votes": 1,
-    "max_votes": 10
+    "status": "closed"
   }
   ```
-
+  
 - Response:
 
   - `200 OK`：投票更新成功。

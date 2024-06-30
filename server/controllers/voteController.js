@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const passport = require('passport');
 
 exports.createVoteWithOptions = async (req, res) => {
-    const { user_id, vote_title, vote_description, start_time, end_time, status, min_votes, max_votes, options } = req.body;
+    const { user_id, vote_title, vote_description, start_time, end_time, min_votes, max_votes, options } = req.body;
     const vote_code = generateRandomCode();
     const authUserId = req.user.id;
 
@@ -13,6 +13,15 @@ exports.createVoteWithOptions = async (req, res) => {
     }
 
     try {
+        const currentDateTime = new Date().toISOString();
+        let status = 'unstart'; // Default status
+
+        if (currentDateTime >= start_time && currentDateTime <= end_time) {
+            status = 'open';
+        } else if (currentDateTime > end_time) {
+            status = 'closed';
+        }
+
         // 开始事务
         await executeSql('BEGIN');
         console.log('BEGIN TRANSACTION');
@@ -77,6 +86,7 @@ function generateRandomCode() {
 
 exports.getVotesByUserId = async (req, res) => {
     const { user_id } = req.params;
+    const { name, status } = req.query;
     const token = req.headers.authorization; // Assuming token is passed in the Authorization header
 
     try {
@@ -87,10 +97,26 @@ exports.getVotesByUserId = async (req, res) => {
             return res.status(403).send('Unauthorized: Invalid token or user');
         }
 
-        // 查询用户参与的投票，限制个数为10
-        const votes = await executeSql('SELECT * FROM votes WHERE user_id = ? ORDER BY vote_id DESC LIMIT 10', [user_id]);
+        // Construct the base SQL query
+        let query = 'SELECT * FROM votes WHERE user_id = ?';
+        const queryParams = [user_id];
 
-        // 查询每个投票的选项信息
+        // Add conditions for name and status if provided
+        if (name) {
+            query += ' AND vote_title LIKE ?';
+            queryParams.push(`%${name}%`);
+        }
+        if (status) {
+            query += ' AND status = ?';
+            queryParams.push(status);
+        }
+
+        query += ' ORDER BY vote_id DESC';
+
+        // Query votes
+        const votes = await executeSql(query, queryParams);
+
+        // Query options for each vote
         const votesWithOptions = await Promise.all(votes.map(async (vote) => {
             const options = await executeSql('SELECT * FROM vote_options WHERE vote_id = ?', [vote.vote_id]);
             return { ...vote, options };
@@ -156,38 +182,137 @@ exports.getVoteByCode = async (req, res) => {
     }
 };
 
-
 exports.updateVote = async (req, res) => {
     const { vote_id } = req.params;
-    const { vote_title, vote_description, start_time, end_time, status, min_votes, max_votes } = req.body;
+    const { vote_title, vote_description, start_time, end_time, status } = req.body;
+    const token = req.headers.authorization;
 
     try {
-        await executeSql(
-            'UPDATE votes SET vote_title = ?, vote_description = ?, start_time = ?, end_time = ?, status = ?, min_votes = ?, max_votes = ? WHERE vote_id = ?',
-            [vote_title, vote_description, start_time, end_time, status, min_votes, max_votes, vote_id]
-        );
-        res.status(200).send('Vote updated');
+        // Validate token
+        const validToken = await validateToken(token);
+
+        if (!validToken) {
+            return res.status(403).send('Unauthorized: Invalid token');
+        }
+
+        const authUserId = validToken.id;
+
+        // Check if the vote belongs to the authenticated user
+        const voteCheck = await executeSql('SELECT * FROM votes WHERE vote_id = ? AND user_id = ?', [vote_id, authUserId]);
+        if (voteCheck.length === 0) {
+            return res.status(403).send('User does not have permission to update this vote');
+        }
+
+        // Get current vote details
+        const currentVote = voteCheck[0];
+
+        // Determine new values
+        const newValues = {
+            vote_title: currentVote.vote_title,
+            vote_description: currentVote.vote_description,
+            start_time: currentVote.start_time,
+            end_time: currentVote.end_time,
+            status: currentVote.status
+        };
+
+        if (vote_title !== undefined) {
+            newValues.vote_title = vote_title;
+        }
+        if (vote_description !== undefined) {
+            newValues.vote_description = vote_description;
+        }
+        if (start_time !== undefined) {
+            newValues.start_time = start_time;
+        }
+        if (end_time !== undefined) {
+            newValues.end_time = end_time;
+        }
+        if (status !== undefined) {
+            newValues.status = status;
+        }
+
+        // Validate and adjust end_time and status
+        const currentDateTime = new Date().toISOString();
+
+        if (newValues.status === 'closed') {
+            newValues.end_time = currentDateTime;
+        } else if (newValues.start_time && newValues.end_time) {
+            if (currentDateTime >= newValues.start_time && currentDateTime <= newValues.end_time) {
+                newValues.status = 'open';
+            } else if (currentDateTime > newValues.end_time) {
+                newValues.status = 'closed';
+                newValues.end_time = currentDateTime;
+            } else {
+                newValues.status = 'unstart';
+            }
+        }
+
+        // Construct the SQL query dynamically based on provided fields
+        const fieldsToUpdate = [];
+        const valuesToUpdate = [];
+
+        if (newValues.vote_title !== currentVote.vote_title) {
+            fieldsToUpdate.push('vote_title = ?');
+            valuesToUpdate.push(newValues.vote_title);
+        }
+        if (newValues.vote_description !== currentVote.vote_description) {
+            fieldsToUpdate.push('vote_description = ?');
+            valuesToUpdate.push(newValues.vote_description);
+        }
+        if (newValues.start_time !== currentVote.start_time) {
+            fieldsToUpdate.push('start_time = ?');
+            valuesToUpdate.push(newValues.start_time);
+        }
+        if (newValues.end_time !== currentVote.end_time) {
+            fieldsToUpdate.push('end_time = ?');
+            valuesToUpdate.push(newValues.end_time);
+        }
+        if (newValues.status !== currentVote.status) {
+            fieldsToUpdate.push('status = ?');
+            valuesToUpdate.push(newValues.status);
+        }
+
+        if (fieldsToUpdate.length > 0) {
+            valuesToUpdate.push(vote_id);
+
+            const updateQuery = `UPDATE votes SET ${fieldsToUpdate.join(', ')} WHERE vote_id = ?`;
+            await executeSql(updateQuery, valuesToUpdate);
+
+            res.status(200).send('Vote updated');
+        } else {
+            res.status(400).send('No valid fields provided to update');
+        }
     } catch (err) {
-        res.status(500).send(err);
+        console.error(err);
+        res.status(500).send('Internal server error');
     }
 };
 
 
 exports.deleteVote = async (req, res) => {
     const { vote_id } = req.params;
-    const authUserId = req.user.id; // 从 JWT token 中获取用户 ID
+    const token = req.headers.authorization;
 
     try {
-        // 验证用户是否有权限删除该投票
+        // Validate token
+        const validToken = await validateToken(token);
+
+        if (!validToken) {
+            return res.status(403).send('Unauthorized: Invalid token');
+        }
+
+        const authUserId = validToken.id;
+
+        // Check if the vote belongs to the authenticated user
         const voteCheck = await executeSql('SELECT * FROM votes WHERE vote_id = ? AND user_id = ?', [vote_id, authUserId]);
         if (voteCheck.length === 0) {
             return res.status(403).send('User does not have permission to delete this vote');
         }
 
-        // 先删除与该投票相关的所有选项
+        // Delete vote options first
         await executeSql('DELETE FROM vote_options WHERE vote_id = ?', [vote_id]);
 
-        // 再删除投票
+        // Delete the vote
         await executeSql('DELETE FROM votes WHERE vote_id = ?', [vote_id]);
 
         res.status(200).send('Vote and its options deleted');
@@ -195,3 +320,4 @@ exports.deleteVote = async (req, res) => {
         res.status(500).send(err.message);
     }
 };
+

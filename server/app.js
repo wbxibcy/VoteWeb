@@ -3,21 +3,15 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const http = require('http');
 const WebSocket = require('ws');
-const cron = require('node-cron');
-const path = require('path');
-const { persistDataToMySQL } = require('./controllers/persistController');
-// 定时任务设置，每分钟执行一次
-// cron.schedule('* * * * *', () => {
-//     console.log('Running the data persistence job');
-//     persistDataToMySQL();
-//   });
+const passport = require('passport');
+const { Strategy: JWTStrategy, ExtractJwt: ExtractJWT } = require('passport-jwt');
+const jwt = require('jsonwebtoken');
+
+require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
-
-// 指定静态文件路径为 Vue 打包后的 dist 文件夹
-app.use(express.static(path.join(__dirname, '../lesson/dist')));
 
 // 允许所有来源访问
 app.use(cors());
@@ -29,6 +23,19 @@ app.all('*', function (req, res, next) {
     next();
 });
 app.use(bodyParser.json());
+
+// 初始化 Passport 和 JWT 策略
+const jwtOptions = {
+    jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
+    secretOrKey: process.env.JWT_SECRET,
+};
+
+passport.use(new JWTStrategy(jwtOptions, (jwtPayload, done) => {
+    // 可以在这里根据 jwtPayload 查询用户或执行其他逻辑
+    return done(null, jwtPayload);
+}));
+
+app.use(passport.initialize()); // 初始化 passport 中间件
 
 // 将 WebSocket 服务器添加到请求对象中
 app.use((req, res, next) => {
@@ -42,15 +49,10 @@ const voteRoutes = require('./routes/votes');
 const optionRoutes = require('./routes/options');
 const resultRoutes = require('./routes/results');
 
-// Routes
-app.get('/', async (req, res) => {
-    res.send("Hello World!");
-});
-
 app.use('/users', userRoutes);
-app.use('/votes', voteRoutes);
-app.use('/vote_options', optionRoutes);
-app.use('/results', resultRoutes);
+app.use('/votes', passport.authenticate('jwt', { session: false }), voteRoutes);
+app.use('/vote_options', passport.authenticate('jwt', { session: false }), optionRoutes);
+app.use('/results', passport.authenticate('jwt', { session: false }), resultRoutes);
 
 // WebSocket 连接事件
 wss.on('connection', (ws) => {
@@ -74,11 +76,10 @@ wss.broadcast = (data) => {
     });
 };
 
-// Server listening
+// 启动服务器监听
 const port = process.env.PORT || 3000;
 server.listen(port, () => {
-    const url = `http://localhost:${port}`;
-    console.log(`Server running on ${url}`);
+    console.log(`Server running on http://localhost:${port}`);
 });
 
 // 错误处理
@@ -86,3 +87,15 @@ app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).send('Something broke!');
 });
+
+// 生成 Token 函数示例
+function generateToken(user) {
+    const payload = {
+        id: user.id,
+        username: user.username,
+        // 其他用户信息
+    };
+    return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' }); 
+}
+
+module.exports = { app, generateToken }; // 导出 app 和 generateToken 函数

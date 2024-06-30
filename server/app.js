@@ -7,6 +7,7 @@ const passport = require('passport');
 const { Strategy: JWTStrategy, ExtractJwt: ExtractJWT } = require('passport-jwt');
 const jwt = require('jsonwebtoken');
 
+require('./tasks/voteScheduler');
 require('dotenv').config();
 
 const app = express();
@@ -98,4 +99,4 @@ function generateToken(user) {
     return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' }); 
 }
 
-module.exports = { app, generateToken }; // 导出 app 和 generateToken 函数
+module.exports = { app, generateToken };

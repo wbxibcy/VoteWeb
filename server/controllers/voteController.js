@@ -13,8 +13,11 @@ exports.createVoteWithOptions = async (req, res) => {
     }
 
     try {
-        const currentDateTime = new Date().toISOString();
+        const currentDateTime = new Date().toISOString().slice(0, 19);
         let status = 'unstart'; // Default status
+        console.log(currentDateTime);
+        console.log(start_time);
+        console.log(end_time);
 
         if (currentDateTime >= start_time && currentDateTime <= end_time) {
             status = 'open';
@@ -169,6 +172,11 @@ exports.getVoteByCode = async (req, res) => {
         // Check if the vote is closed
         if (vote.status === 'closed') {
             return res.status(403).send('投票已结束');
+        }
+
+        // Check if the vote is closed
+        if (vote.status === 'unstart') {
+            return res.status(403).send('投票未开始');
         }
 
         const options = await executeSql('SELECT * FROM vote_options WHERE vote_id = ?', [vote.vote_id]);

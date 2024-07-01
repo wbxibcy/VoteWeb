@@ -47,12 +47,10 @@ app.use((req, res, next) => {
 // 引入路由
 const userRoutes = require('./routes/users');
 const voteRoutes = require('./routes/votes');
-const optionRoutes = require('./routes/options');
 const resultRoutes = require('./routes/results');
 
 app.use('/users', userRoutes);
 app.use('/votes', passport.authenticate('jwt', { session: false }), voteRoutes);
-app.use('/vote_options', passport.authenticate('jwt', { session: false }), optionRoutes);
 app.use('/results', passport.authenticate('jwt', { session: false }), resultRoutes);
 
 // WebSocket 连接事件

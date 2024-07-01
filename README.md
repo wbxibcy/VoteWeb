@@ -25,6 +25,10 @@
 ```shell
 cd ./server
 npm install
+mkdir .env
+vim .env
+# 这里填入 JWT_SECRET
+JWT_SECRET=your_secret_key
 npm start
 ```
 

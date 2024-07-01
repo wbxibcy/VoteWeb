@@ -50,7 +50,7 @@
 import { ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 export default {
   setup() {
@@ -75,6 +75,8 @@ export default {
           if (error.response.status === 404) {
             console.error('没有找到对应投票码的投票信息');
             ElMessage.error('未找到匹配的投票码，请检查您的投票码是否正确');
+          } else if (error.response.status === 403){
+            ElMessage.warning(error.response.data);
           } else if (error.response.status === 500) {
             console.error('服务器错误');
             ElMessage.error('服务器遇到问题，请稍后再试');

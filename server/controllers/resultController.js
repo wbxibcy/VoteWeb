@@ -10,75 +10,84 @@ exports.submitVote = async (req, res) => {
   const authUserId = req.user.id;
 
   if (user_id !== authUserId) {
-      return res.status(403).send('User ID does not match the authenticated user');
+    return res.status(403).send('User ID does not match the authenticated user');
   }
 
   try {
-      // 开始事务
-      await executeSql('BEGIN');
-      console.log('BEGIN TRANSACTION');
+    const checkVoteQuery = `
+            SELECT COUNT(*) as count FROM results WHERE user_id = ? AND vote_id = ?
+        `;
+    const checkVoteResult = await executeSql(checkVoteQuery, [user_id, vote_id]);
+    const voteCount = checkVoteResult[0].count;
 
-      // 插入投票结果到 MySQL 的 results 表
-      const vote_time = new Date().toISOString().slice(0, 19).replace('T', ' ');
-      const result_id = uuidv4();
-      const insertResultQuery = `
+    if (voteCount > 0) {
+      return res.status(400).send('User has already voted');
+    }
+    // 开始事务
+    await executeSql('BEGIN');
+    console.log('BEGIN TRANSACTION');
+
+    // 插入投票结果到 MySQL 的 results 表
+    const vote_time = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const result_id = uuidv4();
+    const insertResultQuery = `
           INSERT INTO results (user_id, vote_id, vote_time)
           VALUES (?, ?, ?)
       `;
 
-      // 执行结果插入
-      const resultInsertion = await executeSql(insertResultQuery, [user_id, vote_id, vote_time]);
-      const insertedResultId = resultInsertion.insertId;
-      console.log('Result inserted with ID:', insertedResultId);
+    // 执行结果插入
+    const resultInsertion = await executeSql(insertResultQuery, [user_id, vote_id, vote_time]);
+    const insertedResultId = resultInsertion.insertId;
+    console.log('Result inserted with ID:', insertedResultId);
 
-      // 逐行插入投票选项到 MySQL 的 result_details 表
-      for (const option of options) {
-          const optionInsertQuery = `
+    // 逐行插入投票选项到 MySQL 的 result_details 表
+    for (const option of options) {
+      const optionInsertQuery = `
               INSERT INTO result_details (result_id, option_id)
               VALUES (?, ?)
           `;
-          await executeSql(optionInsertQuery, [insertedResultId, option.option_id]);
-      }
-      console.log('Result details inserted successfully');
+      await executeSql(optionInsertQuery, [insertedResultId, option.option_id]);
+    }
+    console.log('Result details inserted successfully');
 
-      // 提交 MySQL 事务
-      await executeSql('COMMIT');
-      console.log('COMMIT TRANSACTION');
+    // 提交 MySQL 事务
+    await executeSql('COMMIT');
+    console.log('COMMIT TRANSACTION');
 
-      // 将投票结果存储到 Redis
-      await redisClient.hSet(`vote:${vote_id}:results`, result_id, JSON.stringify({ user_id, vote_time, options }));
+    // 将投票结果存储到 Redis
+    await redisClient.hSet(`vote:${vote_id}:results`, result_id, JSON.stringify({ user_id, vote_time, options }));
 
-      // 更新 Redis 中投票选项的计数
-      for (const option of options) {
-          await redisClient.hIncrBy(`vote:${vote_id}`, `option:${option.option_id}`, 1);
-      }
+    // 更新 Redis 中投票选项的计数
+    for (const option of options) {
+      await redisClient.hIncrBy(`vote:${vote_id}`, `option:${option.option_id}`, 1);
+    }
 
-      // 获取最新的投票结果
-      const voteResults = await redisClient.hGetAll(`vote:${vote_id}`);
-      const formattedResults = Object.entries(voteResults).map(([option, count]) => ({
-          option_id: option.replace('option:', ''),
-          count: parseInt(count)
-      }));
+    // 获取最新的投票结果
+    const voteResults = await redisClient.hGetAll(`vote:${vote_id}`);
+    const formattedResults = Object.entries(voteResults).map(([option, count]) => ({
+      option_id: option.replace('option:', ''),
+      count: parseInt(count)
+    }));
 
-      // 通过 WebSocket 广播最新结果
-      req.wss.broadcast(JSON.stringify({ vote_id, results: formattedResults }));
+    // 通过 WebSocket 广播最新结果
+    req.wss.broadcast(JSON.stringify({ vote_id, results: formattedResults }));
 
-      res.status(201).send({ result_id });
+    res.status(201).send({ result_id });
   } catch (err) {
-      console.error('Transaction error:', err);
+    console.error('Transaction error:', err);
 
-      // 如果出错，回滚 MySQL 事务
-      await executeSql('ROLLBACK');
-      console.log('ROLLBACK TRANSACTION');
+    // 如果出错，回滚 MySQL 事务
+    await executeSql('ROLLBACK');
+    console.log('ROLLBACK TRANSACTION');
 
-      res.status(500).send(err);
+    res.status(500).send(err);
   }
 };
 
 
 exports.getResultsByVoteId = async (req, res) => {
   const { vote_id } = req.params;
-  const token = req.headers.authorization; 
+  const token = req.headers.authorization;
   const user_id = parseInt(req.params.user_id);
 
   try {

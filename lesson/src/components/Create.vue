@@ -22,7 +22,6 @@
   padding-right: 150px; 
 }
 
-
 .login-form {
   width: 400px;
   background-color: white;
@@ -55,7 +54,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 const router = useRouter();
 const loginFormRef = ref(null);
@@ -100,7 +99,18 @@ const submitForm = async (formRef) => {
 
       if (response.ok) {
         console.log('注册成功!', loginForm.value);
-        router.push({ name: 'login' });
+        ElMessageBox.alert('注册成功!', '提示', {
+          confirmButtonText: '确定',
+          callback: () => {
+            ElMessage({
+              type: 'success',
+              message: '注册成功! 即将跳转到登录页面。',
+            });
+            setTimeout(() => {
+              router.push({ name: 'login' });
+            }, 3000);
+          },
+        });
       } else {
         const errorData = await response.json();
         console.log('注册失败:', errorData.message);

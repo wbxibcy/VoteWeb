@@ -134,6 +134,7 @@
 import { useRouter, useRoute } from 'vue-router';
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
+import { ElMessageBox, ElMessage } from 'element-plus';
 
 const router = useRouter();
 const route = useRoute();
@@ -172,13 +173,18 @@ const handleMoreClick = (vote) => {
 
 const handleDeleteClick = async (vote) => {
   try {
-    const voteId = vote.vote_id;
-    await axios.delete(`http://localhost:3000/votes/${voteId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    fetchVotes(); // 删除后重新获取投票列表
+    const confirmed = await ElMessageBox.confirm('确定要删除这条记录吗？', '提示');
+    if (confirmed) {
+      const voteId = vote.vote_id;
+      await axios.delete(`http://localhost:3000/votes/${voteId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchVotes(); // 删除后重新获取投票列表
+      ElMessage.success('删除成功');
+    }
   } catch (error) {
     console.error('Error deleting vote:', error.message);
+    ElMessage.error('删除失败，请稍后再试');
   }
 };
 

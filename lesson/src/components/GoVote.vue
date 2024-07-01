@@ -101,7 +101,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
-import { ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 export default {
   setup() {
@@ -161,6 +161,7 @@ export default {
         if (response.status === 201) {
           console.log('投票提交成功:', response.data);
           selectedOptions.value = [];
+          ElMessage.success('投票成功');
           // router.push({ name: 'ongoingvote', query: { vote_id: voteData.value.vote.vote_id, user_id: userId.value, token: token } });
         }
       } catch (error) {

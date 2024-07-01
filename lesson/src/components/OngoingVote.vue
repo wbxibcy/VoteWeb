@@ -59,6 +59,7 @@ body {
     <div class="flex-grow" />
     <el-menu-item index="home" style="color: #409EFF;font-weight: bold;">返回首页</el-menu-item>
   </el-menu>
+
   <div class="vote-details" v-if="voteData">
     <h1>{{ voteData.vote.vote_title }}</h1>
     <p>{{ voteData.vote.vote_description }}</p>
@@ -68,7 +69,7 @@ body {
     <el-button @click="startEditing" style="font-weight: bold; background-color: #409EFF; color: white;">编辑</el-button>
     <el-button @click="exportVoteData" style="font-weight: bold; background-color: #67C23A; color: white;">
     导出</el-button>
-    <el-button style="font-weight: bold; background-color: red; color: white;">提前结束</el-button>
+    <el-button @click="endVote" style="font-weight: bold; background-color: red; color: white;">提前结束</el-button>
     <div v-if="isEditing" style="color: #409EFF; font-weight: bold;">
       <label>
         投票名称:
@@ -216,6 +217,27 @@ const handleExportLogic = (exportData) => {
   XLSX.utils.book_append_sheet(workbook, worksheet, '投票结果');
   const voteTitle = exportData.vote.vote_title.replace(/[/\\?%*:|"<>]/g, '-');
   XLSX.writeFile(workbook, `${voteTitle}.xlsx`);
+};
+
+const endVote = async () => {
+  try {
+    const response = await axios.put(`http://localhost:3000/votes/${voteId.value}`, {
+      user_id: Number(userId),
+      status: 'closed'
+    }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (response.status === 200) {
+      ElMessage.success('投票已提前结束');
+      router.push({ name: myvote , query: { user_id: userId, token: token } });
+    } else {
+      throw new Error(`更新投票失败: 状态码 ${response.status}`);
+    }
+  } catch (error) {
+    console.error('更新投票失败:', error.message);
+    ElMessage.error('更新投票失败');
+  }
 };
 
 onMounted(() => {

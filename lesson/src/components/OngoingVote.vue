@@ -66,9 +66,9 @@ body {
     <p>投票开始时间：{{ new Date(voteData.vote.start_time).toLocaleString() }}</p>
     <p>投票结束时间：{{ new Date(voteData.vote.end_time).toLocaleString() }}</p>
     <el-button @click="startEditing" style="font-weight: bold; background-color: #409EFF; color: white;">编辑</el-button>
-    <el-button @click="exportVoteData"
-      style="font-weight: bold; background-color: #67C23A; color: white;">导出</el-button>
-    <el-button @click="deleteVote" style="font-weight: bold; color: white; background-color: red;">删除</el-button>
+    <el-button @click="exportVoteData" style="font-weight: bold; background-color: #67C23A; color: white;">
+    导出</el-button>
+    <el-button style="font-weight: bold; background-color: red; color: white;">提前结束</el-button>
     <div v-if="isEditing" style="color: #409EFF; font-weight: bold;">
       <label>
         投票名称:
@@ -100,6 +100,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import * as XLSX from 'xlsx';
 
 const route = useRoute();
 const router = useRouter();
@@ -188,37 +189,33 @@ const submitEdit = async () => {
 
 const exportVoteData = async () => {
   try {
-    const response = await axios.get(`http://localhost:3000/results/export/${voteId.value}`, {
+    const response = await axios.get(`http://localhost:3000/results/${userId}/${voteId.value}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (response.status === 200) {
       const exportData = response.data;
-      // Handle export logic here
+      handleExportLogic(exportData);
     } else {
       throw new Error(`导出失败: 状态码 ${response.status}`);
     }
   } catch (error) {
     console.error('导出失败:', error.message);
-    ElMessage.error('导出失败');
+    ElMessage.error(`导出失败: ${error.message}`);
   }
 };
 
+const handleExportLogic = (exportData) => {
+  // 将数据转换为 XLSX 格式
+  const worksheet = XLSX.utils.json_to_sheet(exportData.results.map(result => ({
+    option_id: result.option_id,
+    count: result.count,
+    option_title: exportData.options.find(option => option.option_id.toString() === result.option_id)?.option_title
+  })));
 
-const deleteVote = async () => {
-  try {
-    const response = await axios.delete(`http://localhost:3000/votes/${voteId.value}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (response.status === 200) {
-      ElMessage.success('投票删除成功');
-      router.push({ name: 'myvote', query: { user_id: userId } });
-    } else {
-      throw new Error(`删除投票失败: 状态码 ${response.status}`);
-    }
-  } catch (error) {
-    console.error('删除投票失败:', error.message);
-    ElMessage.error('删除投票失败');
-  }
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, '投票结果');
+  const voteTitle = exportData.vote.vote_title.replace(/[/\\?%*:|"<>]/g, '-');
+  XLSX.writeFile(workbook, `${voteTitle}.xlsx`);
 };
 
 onMounted(() => {

@@ -116,6 +116,7 @@ exports.getResultsByVoteId = async (req, res) => {
     const response = {
       vote: {
         vote_id: voteResults.vote_id,
+        user_id: user_id,
         vote_title: voteResults.vote_title,
         vote_description: voteResults.vote_description,
         start_time: voteResults.start_time,

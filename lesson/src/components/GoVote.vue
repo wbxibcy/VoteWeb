@@ -153,6 +153,7 @@ export default {
         };
 
         console.log('Submitting votes:', postData);
+        console.log(userId.value);
         const response = await axios.post('http://localhost:3000/results', postData, {
           headers: { Authorization: `Bearer ${token}` } // 在头部中包含 token
         });

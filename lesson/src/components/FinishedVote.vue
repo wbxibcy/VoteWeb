@@ -96,43 +96,43 @@ body {
 </style>
 
 <template>
-    <el-menu :default-active="activeIndex" class="el-menu" mode="horizontal" :ellipsis="false" @select="handleSelect">
-      <div class="logo-title">
-        <img src="../assets/logo.png" alt="Logo" class="logo" />
-      </div>
-      <div class="flex-grow" />
-      <el-menu-item index="home" style="color: #409EFF;font-weight: bold;">返回首页</el-menu-item>
-    </el-menu>
+  <el-menu :default-active="activeIndex" class="el-menu" mode="horizontal" :ellipsis="false" @select="handleSelect">
+    <div class="logo-title">
+      <img src="../assets/logo.png" alt="Logo" class="logo" />
+    </div>
+    <div class="flex-grow" />
+    <el-menu-item index="home" style="color: #409EFF;font-weight: bold;">返回首页</el-menu-item>
+  </el-menu>
 
-    <div class="scrollable-content">  
-  <div class="cb-container">
-    <div class="vote-details" v-if="voteData">
+  <div class="scrollable-content">  
+    <div class="cb-container">
+      <div class="vote-details" v-if="voteData">
         <h1>投票名称为{{ voteData.vote.vote_title }}</h1>
         <p>投票描述为{{ voteData.vote.vote_description }}</p>
         <p>投票状态为{{ voteData.vote.status }}</p>
         <p>投票开始时间为{{ voteData.vote.start_time }}</p>
         <p>投票结束时间为{{ voteData.vote.end_time }}</p>
       </div>
-    <div class="b-container">
-      <div style="width: 80%;">
-        <el-table :data="optionData">
-          <el-table-column prop="option_title" label="投票选项"></el-table-column>
-        </el-table>
+      <el-button type="primary" @click="exportData">导出数据</el-button>
+      <div class="b-container">
+        <div style="width: 80%;">
+          <el-table :data="optionData">
+            <el-table-column prop="option_title" label="投票选项"></el-table-column>
+          </el-table>
+        </div>
+        <div style="width: 80%;">
+          <el-table :data="resultData">
+            <el-table-column prop="count" label="投票数量"></el-table-column>
+          </el-table>
+        </div>
       </div>
-      <div style="width: 80%;">
-        <el-table :data="resultData">
-          <el-table-column prop="count" label="投票数量"></el-table-column>
-        </el-table>
+      <div class="charts-container">
+        <div ref="bar" style="width: 450px; height: 450px;"></div>
+        <div ref="line" style="width: 450px; height: 450px;"></div>
+        <div ref="pie" style="width: 450px; height: 450px;"></div>
       </div>
-    </div>
-
-    <div class="charts-container">
-      <div ref="bar" style="width: 450px; height: 450px;"></div>
-      <div ref="line" style="width: 450px; height: 450px;"></div>
-      <div ref="pie" style="width: 450px; height: 450px;"></div>
     </div>
   </div>
-</div>
 </template>
 
 <script setup>
@@ -151,7 +151,6 @@ const optionData = ref([]);
 const resultData = ref([]);
 const activeIndex = ref('finishedvote')
 
-
 const handleSelect = (index) => {
   activeIndex.value = index
   router.push({ name: index, query: { user_id: userId } })
@@ -166,11 +165,6 @@ const fetchVoteData = async () => {
         option_id: option.option_id,
         option_title: option.option_title
       }));
-      // formData.value.vote_title = data.vote_title;
-      // formData.value.vote_status = data.status;
-      // formData.value.start_time = data.start_time; // 不进行额外的格式化
-      // formData.value.end_time = data.end_time; // 不进行额外的格式化
-      // formData.value.vote_description = data.vote_description;
       await fetchResultsData(response.data.vote.vote_id);
     } else {
       throw new Error(`获取投票内容失败: 状态码 ${response.status}`);
@@ -197,6 +191,22 @@ const fetchResultsData = async (voteId) => {
   }
 };
 
+const exportData = () => {
+  const data = {
+    vote: voteData.value,
+    options: optionData.value,
+    results: resultData.value
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'vote_data.json';
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
 const bar = ref(null);
 const line = ref(null);
 const pie = ref(null);
@@ -206,20 +216,13 @@ const createChart = (el, type) => {
   chart.setOption({
     tooltip: {
       trigger: 'item',
-      formatter: (params) => {
-        return `${params.name}: ${params.value}`;
-      }
+      formatter: (params) => `${params.name}: ${params.value}`
     },
     xAxis: {
       type: 'category',
       data: optionData.value.map(option => option.option_title),
       axisLabel: {
-        formatter: (value) => {
-          if (value.length > 10) {
-            return value.slice(0, 10) + '...';
-          }
-          return value;
-        },
+        formatter: (value) => (value.length > 10 ? value.slice(0, 10) + '...' : value),
         tooltip: {
           show: true,
           formatter: (params) => params.value
@@ -230,7 +233,7 @@ const createChart = (el, type) => {
       type: 'value'
     },
     series: [{
-      type: type,
+      type,
       data: resultData.value.map(result => result.count)
     }]
   });
@@ -242,9 +245,7 @@ const createPieChart = (el) => {
   chart.setOption({
     tooltip: {
       trigger: 'item',
-      formatter: (params) => {
-        return `${params.name}: ${params.value}`;
-      }
+      formatter: (params) => `${params.name}: ${params.value}`
     },
     series: [{
       type: 'pie',
@@ -260,16 +261,13 @@ const createPieChart = (el) => {
 onMounted(async () => {
   await fetchVoteData();
 
-  // Create charts after data is fetched
   createChart(bar.value, 'bar');
   createChart(line.value, 'line');
   createPieChart(pie.value);
 
-  // Initialize WebSocket
   initializeWebSocket();
 });
 
-// Watch optionData and resultData changes to update charts
 watch([optionData, resultData], () => {
   createChart(bar.value, 'bar');
   createChart(line.value, 'line');

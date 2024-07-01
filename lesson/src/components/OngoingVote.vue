@@ -49,6 +49,13 @@ body {
   display: flex;
   justify-content: start;
 }
+
+.el-button[disabled] {
+  background-color: #ccc !important;
+  color: #999 !important;
+  cursor: not-allowed;
+}
+
 </style>
 
 <template>
@@ -66,10 +73,21 @@ body {
     <p>投票码： {{ voteData.vote.vote_code }}</p>
     <p>投票开始时间：{{ new Date(voteData.vote.start_time).toLocaleString() }}</p>
     <p>投票结束时间：{{ new Date(voteData.vote.end_time).toLocaleString() }}</p>
-    <el-button @click="startEditing" style="font-weight: bold; background-color: #409EFF; color: white;">编辑</el-button>
+    <el-button 
+      v-if="canEdit === 1" 
+      @click="startEditing" 
+      type="primary" 
+      style="font-weight: bold;"
+    >
+      编辑
+    </el-button>
+    <el-button v-else disabled type="primary" style="font-weight: bold;">
+      编辑
+    </el-button>
     <el-button @click="exportVoteData" style="font-weight: bold; background-color: #67C23A; color: white;">
     导出</el-button>
-    <el-button @click="endVote" style="font-weight: bold; background-color: red; color: white;">提前结束</el-button>
+    <el-button v-if="canEdit === 1" @click="endVote" style="font-weight: bold; background-color: red; color: white;">提前结束</el-button>
+    <el-button v-else disabled style="font-weight: bold; background-color: red; color: white;">提前结束</el-button>
     <div v-if="isEditing" style="color: #409EFF; font-weight: bold;">
       <label>
         投票名称:
@@ -110,6 +128,8 @@ const token = route.query.token;
 const voteId = ref(route.query.vote_id);
 const voteData = ref(null);
 const isEditing = ref(false);
+const canEdit = ref(Number(route.query.can_edit) || 0);
+const isCreator = ref(false); // 创建者标识，默认为 false
 const editVoteData = ref({});
 const activeIndex = ref('ongoingvote');
 
@@ -132,6 +152,8 @@ const fetchVoteData = async () => {
           count: findCountForOption(option.option_id, response.data.results)
         }))
       };
+      // 检查当前用户是否是创建者
+      isCreator.value = response.data.vote.created_by === userId;
     } else {
       console.error('获取投票内容失败:', response.statusText);
       if (response.status === 404) {
@@ -230,7 +252,7 @@ const endVote = async () => {
 
     if (response.status === 200) {
       ElMessage.success('投票已提前结束');
-      router.push({ name: myvote , query: { user_id: userId, token: token } });
+      router.push({ name: 'myvote' , query: { user_id: userId, token: token } });
     } else {
       throw new Error(`更新投票失败: 状态码 ${response.status}`);
     }

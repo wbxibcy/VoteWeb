@@ -14,7 +14,9 @@ exports.createVoteWithOptions = async (req, res) => {
 
     try {
         const currentDateTime = new Date().toISOString().slice(0, 19);
+        const current = new Date().toISOString().slice(0, 19);
         let status = 'unstart'; // Default status
+        console.log(current);
         console.log(currentDateTime);
         console.log(start_time);
         console.log(end_time);
@@ -239,7 +241,7 @@ exports.updateVote = async (req, res) => {
         }
 
         // Validate and adjust end_time and status
-        const currentDateTime = new Date().toISOString();
+        const currentDateTime = new Date().toISOString().slice(0, 19);
 
         if (newValues.status === 'closed') {
             newValues.end_time = currentDateTime;

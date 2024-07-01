@@ -88,7 +88,7 @@
           <el-button color="#409EFF" :plain="selectedStatus === 'open'" @click="handleStatusFilter('open')">
             进行中
           </el-button>
-          <el-button color="#409EFF" :plain="selectedStatus === 'unstarted'" @click="handleStatusFilter('unstarted')">
+          <el-button color="#409EFF" :plain="selectedStatus === 'unstart'" @click="handleStatusFilter('unstart')">
             未开始
           </el-button>
           <el-button color="#409EFF" :plain="selectedStatus === 'closed'" @click="handleStatusFilter('closed')">
@@ -159,11 +159,14 @@ const fetchVotes = async () => {
   }
 };
 
+
 const handleMoreClick = (vote) => {
+  const canEdit = vote.status === 'closed' ? 0 : 1;
+
   if (vote.status === 'closed') {
-    router.push({ name: 'finishedvote', query: { vote_id: vote.vote_id, user_id: userId, token: token } });
+    router.push({ name: 'ongoingvote', query: { vote_id: vote.vote_id, user_id: userId, token: token, can_edit: canEdit } });
   } else {
-    router.push({ name: 'ongoingvote', query: { vote_id: vote.vote_id, user_id: userId, token: token } });
+    router.push({ name: 'ongoingvote', query: { vote_id: vote.vote_id, user_id: userId, token: token, can_edit: canEdit } });
   }
 };
 

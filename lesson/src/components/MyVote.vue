@@ -11,7 +11,8 @@
   background-repeat: no-repeat;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: start;
+  margin-top: 80px;
 }
 
 .el-menu {
@@ -44,229 +45,169 @@
   flex-grow: 1;
 }
 
-.rounded-rectangle {
-  width: 200px;
-  height: 100px;
-  color: #409EFF;
-  border-radius: 15px;
-  margin-top: 20px;
+
+.table-container {
+  margin-top: 5px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.container {
+
+.bt-container {
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
-.button-container {
+.search {
   display: flex;
-  justify-content: center;
-  width: 100%;
-  margin-bottom: 20px; /* 调整与其他内容的间距 */
-}
-
-.custom-button {
-  border: 2px solid white;
-  background-color: transparent;
-  color: white;
-  font-weight: bold;
-  border-radius: 4px; /* 可以根据需要调整 */
-  margin: 20px; /* 增加按钮之间的间距 */
-}
-
-
-.chart-container-wrapper {
-  display: flex;
-  flex-direction: row; /* 横向排列 */
-  flex-wrap: wrap; /* 换行 */
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  margin-top: 20px;
-}
-
-.chart-container {
-  width: 400px;
-  height: 400px;
-  margin: 10px;
+  margin-bottom: 10px;
 }
 </style>
 
 
 <template>
   <div class="wrapper">
+    <!-- 菜单栏 -->
     <el-menu :default-active="activeIndex" class="el-menu" mode="horizontal" :ellipsis="false" @select="handleSelect">
       <div class="logo-title">
         <img src="../assets/logo.png" alt="Logo" class="logo" />
       </div>
       <div class="flex-grow" />
-      <el-menu-item index="home" style="color: #409EFF;font-weight: bold;">返回首页</el-menu-item>
+      <el-menu-item index="home" style="color: #409EFF; font-weight: bold;">返回首页</el-menu-item>
     </el-menu>
-    
-    <div class="container">
-      <div class="menu-extras">
-      <p class="menu-text" style="color: #409EFF;font-weight: bold;">未完成投票</p>
+    <div class="bt-container">
+      <div class="search">
+        <el-input v-model="keyword" placeholder="输入关键词进行搜索" style="width: 200px;"></el-input>
+        <el-button @click="goToCreateVotes" style="background-color: #409EFF;width: 400px; color: white;">创建新的投票</el-button>
+        <div class="button-group">
+          <el-button color="#409EFF" :plain="selectedStatus === 'open'" @click="handleStatusFilter('open')">
+            进行中
+          </el-button>
+          <el-button color="#409EFF" :plain="selectedStatus === 'unstarted'" @click="handleStatusFilter('unstarted')">
+            未开始
+          </el-button>
+          <el-button color="#409EFF" :plain="selectedStatus === 'closed'" @click="handleStatusFilter('closed')">
+            已完成
+          </el-button>
+          <el-button color="#409EFF" :plain="!selectedStatus" @click="handleStatusFilter(null)">
+            全部
+          </el-button>
+        </div>
+      </div>
+      <div class="table-container">
+        <el-table :data="filteredVotes" style="width: 100%">
+          <el-table-column prop="vote_title" label="投票标题" width="300" />
+          <el-table-column prop="status" label="状态" width="150" />
+          <el-table-column prop="vote_code" label="投票码" width="200" />
+          <el-table-column prop="start_time" label="开始时间" width="300">
+            <template #default="{ row }">
+              {{ formatTime(row.start_time) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="end_time" label="结束时间" width="300">
+            <template #default="{ row }">
+              {{ formatTime(row.end_time) }}
+            </template>
+          </el-table-column>
+          <el-table-column fixed="right" label="操作" width="150">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="handleMoreClick(row)">
+                更多
+              </el-button>
+              <el-button link type="danger" size="small" @click="handleDeleteClick(row)">
+                删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
     </div>
-  <div class="button-container">
-    <el-button
-      class="rounded-rectangle custom-button"
-      v-for="(vote, index) in votesToShow"
-      :key="index"
-      @click="goToOngoingVotes(vote.vote_id)"
-    >
-      {{ vote.vote_title }}
-    </el-button>
-    <el-button class="rounded-rectangle custom-button" @click="goToCreateVotes">创建投票</el-button>
   </div>
-  <p class="menu-text" style="color: #409EFF; font-weight: bold;">已完成投票</p>
-  <div class="chart-container-wrapper">
-    <div v-for="(vote, index) in closedvotes" :key="index" :ref="el => chartRefs[index] = el" class="chart-container"></div>
-  </div>
-</div>
-</div>
-
-
 </template>
 
 <script setup>
 import { useRouter, useRoute } from 'vue-router';
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
-import * as echarts from 'echarts';
 
-const route = useRoute();
 const router = useRouter();
-const activeIndex = ref('myvote');
+const route = useRoute();
 const userId = route.query.user_id;
-const votes = ref([]); // Array to store ongoing vote objects
-const closedvotes = ref([]); // Array to store closed vote objects
-const chartRefs = ref([]); // Array to store chart refs
-
-onMounted(() => {
-  fetchTitlesAndVoteId();
-});
-
-const handleSelect = (index) => {
-  activeIndex.value = index;
-  router.push({ name: index, query: { user_id: userId } });
-};
+const token = route.query.token;  // 从查询参数中获取令牌
+const votes = ref([]);
+const selectedStatus = ref(null);
+const keyword = ref('');
+const activeIndex = ref('myvote');
 
 const goToCreateVotes = () => {
-  router.push({ name: 'createvote', query: { user_id: userId } });
-};
+      router.push({ name: 'createvote', query: { user_id: userId, token: token } });
+    };
 
-const goToOngoingVotes = (voteId) => {
-  router.push({ name: 'ongoingvote', query: { user_id: userId, vote_id: voteId } });
-};
-
-const fetchTitlesAndVoteId = () => {
-  axios.get(`http://localhost:3000/votes/user/${userId}`, {
-    params: {
-      fields: 'vote_title,vote_id,status', // Fetching vote_title, vote_id, and status
-    }
-  })
-  .then(response => {
-    // Separate ongoing and closed votes
-    votes.value = response.data.filter(vote => vote.status !== 'closed').slice(0, 4);
-    closedvotes.value = response.data.filter(vote => vote.status === 'closed').slice(0, 3);
-
-    // Initialize chart refs array
-    chartRefs.value = new Array(closedvotes.value.length);
-    
-    // Fetch results and draw charts for closed votes
-    closedvotes.value.forEach((vote, index) => {
-      fetchResultsAndDrawChart(vote.vote_id, vote.vote_title, index);
+const fetchVotes = async () => {
+  try {
+    const response = await axios.get(`http://localhost:3000/votes/user/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` }
     });
-  })
-  .catch(error => {
-    console.error('Error fetching vote titles and vote id:', error);
-  });
-};
-
-const fetchResultsAndDrawChart = (voteId, voteTitle, index) => {
-  axios.get(`http://localhost:3000/results/export/${voteId}`)
-    .then(response => {
-      const results = response.data.results;
-      drawChart(index, results, voteTitle, voteId);
-    })
-    .catch(error => {
-      console.error('Error fetching vote results:', error);
-    });
-};
-
-const drawChart = (index, data, voteTitle, voteId) => {
-  if (chartRefs.value[index]) {
-    const chartInstance = echarts.init(chartRefs.value[index]);
-    chartInstance.setOption({
-      title: {
-        text: voteTitle,
-        left: 'center',
-        textStyle: {
-          // Customize text style here
-        }
-      },
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'shadow'
-        }
-      },
-      legend: {
-        bottom: 0,
-        data: ['投票数']
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '3%',
-        containLabel: true
-      },
-      xAxis: {
-        type: 'category',
-        data: data.map(item => item.option_title),
-        axisLabel: {
-          rotate: 45,
-          interval: 0
-        },
-        axisLine: {
-          lineStyle: {
-            // Customize axis line style here
-          }
-        }
-      },
-      yAxis: {
-        type: 'value',
-        axisLine: {
-          lineStyle: {
-            // Customize axis line style here
-          }
-        }
-      },
-      series: [{
-        name: '投票数',
-        type: 'bar',
-        data: data.map(item => item.count),
-        itemStyle: {
-          // Customize item style here
-        },
-        label: {
-          show: true,
-          position: 'top'
-        }
-      }]
-    });
-
-    // Add click event listener
-    chartInstance.on('click', () => {
-      router.push({
-        name: 'finishedvote',
-        query: {
-          vote_id: voteId,
-          user_id: userId.value
-        }
-      });
-    });
+    votes.value = response.data;
+  } catch (error) {
+    console.error('Error fetching votes:', error.message);
   }
 };
 
-const votesToShow = computed(() => votes.value.slice(0, 4));
+const handleMoreClick = (vote) => {
+  if (vote.status === 'closed') {
+    router.push({ name: 'finishedvote', query: { vote_id: vote.vote_id, user_id: userId, token: token } });
+  } else {
+    router.push({ name: 'ongoingvote', query: { vote_id: vote.vote_id, user_id: userId, token: token } });
+  }
+};
+
+const handleDeleteClick = async (vote) => {
+  try {
+    const voteId = vote.vote_id;
+    await axios.delete(`http://localhost:3000/votes/${voteId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    fetchVotes(); // 删除后重新获取投票列表
+  } catch (error) {
+    console.error('Error deleting vote:', error.message);
+  }
+};
+
+const formatTime = (timeString) => {
+  const date = new Date(timeString);
+  const formattedDate = `${date.getFullYear()}-${padNumber(date.getMonth() + 1)}-${padNumber(date.getDate())} ${padNumber(date.getHours())}:${padNumber(date.getMinutes())}:${padNumber(date.getSeconds())}`;
+  return formattedDate;
+};
+
+const padNumber = (num) => {
+  return num.toString().padStart(2, '0');
+};
+
+const handleStatusFilter = (status) => {
+  selectedStatus.value = status;
+};
+
+
+const filteredVotes = computed(() => {
+  if (!selectedStatus.value && !keyword.value) return votes.value;
+
+  return votes.value.filter(vote => {
+    const matchesStatus = !selectedStatus.value || vote.status === selectedStatus.value;
+    const matchesKeyword = !keyword.value || vote.vote_title.toLowerCase().includes(keyword.value.toLowerCase());
+    return matchesStatus && matchesKeyword;
+  });
+});
+
+const handleSelect = (index) => {
+      activeIndex.value = index;
+      router.push({ name: index, query: { user_id: userId, token: token } });
+    };
+
+onMounted(fetchVotes);
 </script>

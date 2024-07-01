@@ -46,41 +46,54 @@
   </div>
 </template>
 
-<script setup>
+<script>
 import { ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import axios from 'axios';
 import { ElMessage } from 'element-plus';
 
-const router = useRouter();
-const voteCode = ref('');
-const route = useRoute();
-const userId = route.query.user_id;
+export default {
+  setup() {
+    const router = useRouter();
+    const voteCode = ref('');
+    const route = useRoute();
+    const userId = route.query.user_id;
+    const token = route.query.token; // Retrieve the token from the query parameters
 
-const submitVoteCode = async () => {
-  try {
-    const response = await axios.get(`http://localhost:3000/votes/code/${voteCode.value}`);
-    if (response.status === 200) {
-      console.log('提交投票码成功:', response.data);
-      // 传递正确的参数给 govote 页面
-      router.push({ name: 'govote', params: { voteCode: voteCode.value }, query: { user_id: userId } });
-    }
-  } catch (error) {
-    if (error.response) {
-      if (error.response.status === 404) {
-        console.error('没有找到对应投票码的投票信息');
-        ElMessage.error('未找到匹配的投票码，请检查您的投票码是否正确');
-      } else if (error.response.status === 500) {
-        console.error('服务器错误');
-        ElMessage.error('服务器遇到问题，请稍后再试');
+    const submitVoteCode = async () => {
+      try {
+        const response = await axios.get(`http://localhost:3000/votes/code/${voteCode.value}`, {
+          headers: { Authorization: `Bearer ${token}` } // Include the token in the request headers
+        });
+        if (response.status === 200) {
+          console.log('提交投票码成功:', response.data);
+          // Navigate to govote page with voteCode, user_id, and token as query parameters
+          router.push({ name: 'govote', params: { voteCode: voteCode.value }, query: { user_id: userId, token: token } });
+        }
+      } catch (error) {
+        if (error.response) {
+          if (error.response.status === 404) {
+            console.error('没有找到对应投票码的投票信息');
+            ElMessage.error('未找到匹配的投票码，请检查您的投票码是否正确');
+          } else if (error.response.status === 500) {
+            console.error('服务器错误');
+            ElMessage.error('服务器遇到问题，请稍后再试');
+          }
+        } else {
+          console.error('请求错误:', error.message);
+        }
       }
-    } else {
-      console.error('请求错误:', error.message);
-    }
-  }
-};
+    };
 
-const goToMyVotes = () => {
-  router.push({ name: 'myvote', query: { user_id: userId } });
+    const goToMyVotes = () => {
+      router.push({ name: 'myvote', query: { user_id: userId, token: token } });
+    };
+
+    return {
+      voteCode,
+      submitVoteCode,
+      goToMyVotes
+    };
+  }
 };
 </script>

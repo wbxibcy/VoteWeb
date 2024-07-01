@@ -65,63 +65,74 @@
   </div>
 </template>
 
-<script setup>
+<script>
 import { ref } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
 
-const router = useRouter();
-const loginFormRef = ref(null);
+export default {
+  setup() {
+    const router = useRouter();
+    const loginFormRef = ref(null);
 
-const loginForm = ref({
-  username: '',
-  password: ''
-});
+    const loginForm = ref({
+      username: '',
+      password: ''
+    });
 
-const rules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
-};
+    const rules = {
+      username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+      password: [{ required: true, message: '请输入密码', trigger: 'blur' }]
+    };
 
-const submitForm = async (formRef) => {
-  await formRef.validate(async (valid, fields) => {
-    if (valid) {
-      try {
-        const response = await axios.post('http://localhost:3000/users/login', {
-          username: loginForm.value.username,
-          password: loginForm.value.password
-        });
+    const submitForm = async (formRef) => {
+      await formRef.validate(async (valid, fields) => {
+        if (valid) {
+          try {
+            const response = await axios.post('http://localhost:3000/users/login', {
+              username: loginForm.value.username,
+              password: loginForm.value.password
+            });
 
-        if (response.data.user_id) {
-          console.log('登录成功，用户信息：', response.data.user);
-          // 登录成功后可以进行页面跳转或其他操作
-          // router.push({ name: 'home' });
-          router.push({ name: 'home', query: { user_id: response.data.user_id } });
+            if (response.data.user_id && response.data.token) {
+              console.log('登录成功，用户信息：', response.data);
+              // Store token securely, e.g., in localStorage
+              localStorage.setItem('token', response.data.token);
+
+              // Navigate to home page with user_id and token as query parameters
+              router.push({ name: 'home', query: { user_id: response.data.user_id, token: response.data.token } });
+            } else {
+              console.error('登录失败，账号或密码错误');
+              ElMessageBox.alert('账号或密码错误，请重新输入', '登录失败', {
+                confirmButtonText: '确定',
+                type: 'error'
+              });
+            }
+          } catch (error) {
+            console.error('登录请求出错:', error);
+            ElMessageBox.alert('账号或密码错误，请重新输入', '登录失败', {
+              confirmButtonText: '确定',
+              type: 'error'
+            });
+          }
         } else {
-          console.log(response.data)
-          console.error('登录失败，账号或密码错误');
-          // 提示账号或密码错误
-          ElMessageBox.alert('账号或密码错误，请重新输入', '登录失败', {
-            confirmButtonText: '确定',
-            type: 'error'
-          });
+          console.log('表单验证未通过', fields);
         }
-      } catch (error) {
-        console.error('登录请求出错:', error);
-        // 处理请求错误
-        ElMessageBox.alert('账号或密码错误，请重新输入', '登录失败', {
-          confirmButtonText: '确定',
-          type: 'error'
-        });
-      }
-    } else {
-      console.log('表单验证未通过', fields);
-    }
-  });
-};
+      });
+    };
 
-const goToCreate = () => {
-  router.push({ name: 'create' });
+    const goToCreate = () => {
+      router.push({ name: 'create' });
+    };
+
+    return {
+      loginFormRef,
+      loginForm,
+      rules,
+      submitForm,
+      goToCreate
+    };
+  }
 };
 </script>

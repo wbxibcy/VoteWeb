@@ -100,32 +100,32 @@
         </div>
       </div>
       <div class="table-container">
-        <el-table :data="filteredVotes" style="width: 100%">
-          <el-table-column prop="vote_title" label="投票标题" width="300" />
-          <el-table-column prop="status" label="状态" width="150" />
-          <el-table-column prop="vote_code" label="投票码" width="200" />
-          <el-table-column prop="start_time" label="开始时间" width="300">
-            <template #default="{ row }">
-              {{ formatTime(row.start_time) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="end_time" label="结束时间" width="300">
-            <template #default="{ row }">
-              {{ formatTime(row.end_time) }}
-            </template>
-          </el-table-column>
-          <el-table-column fixed="right" label="操作" width="150">
-            <template #default="{ row }">
-              <el-button link type="primary" size="small" @click="handleMoreClick(row)">
-                更多
-              </el-button>
-              <el-button link type="danger" size="small" @click="handleDeleteClick(row)">
-                删除
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
+          <el-table :data="filteredVotes" height="650px" style="width: 100%">
+            <el-table-column prop="vote_title" label="投票标题" width="300" />
+            <el-table-column prop="status" label="状态" width="150" />
+            <el-table-column prop="vote_code" label="投票码" width="200" />
+            <el-table-column prop="start_time" label="开始时间" width="300">
+              <template #default="{ row }">
+                {{ formatTime(row.start_time) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="end_time" label="结束时间" width="300">
+              <template #default="{ row }">
+                {{ formatTime(row.end_time) }}
+              </template>
+            </el-table-column>
+            <el-table-column fixed="right" label="操作" width="150">
+              <template #default="{ row }">
+                <el-button link type="primary" size="small" @click="handleMoreClick(row)">
+                  更多
+                </el-button>
+                <el-button link type="danger" size="small" @click="handleDeleteClick(row)">
+                  删除
+                </el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
     </div>
   </div>
 </template>

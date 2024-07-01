@@ -161,7 +161,7 @@ export default {
         if (response.status === 201) {
           console.log('投票提交成功:', response.data);
           selectedOptions.value = [];
-          router.push({ name: 'ongoingvote', query: { vote_id: voteData.value.vote.vote_id, user_id: userId.value, token: token } });
+          // router.push({ name: 'ongoingvote', query: { vote_id: voteData.value.vote.vote_id, user_id: userId.value, token: token } });
         }
       } catch (error) {
         console.error('投票提交失败:', error.message);
